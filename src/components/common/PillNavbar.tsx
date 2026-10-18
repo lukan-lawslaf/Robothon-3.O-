@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Trophy, HelpCircle, CheckSquare, Shield, RotateCcw, ChevronDown } from 'lucide-react';
+import { Trophy, FileText, Flag, Shield, RotateCcw } from 'lucide-react';
 import { resetStoreToDefaults } from '../../services/stateStore';
 
 interface PillNavbarProps {
@@ -13,7 +13,7 @@ interface PillNavbarProps {
 export const PillNavbar: React.FC<PillNavbarProps> = ({
   currentRole,
   setCurrentRole,
-  activeTab,
+  activeTab = 'checkpoints',
   onTabChange,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -31,69 +31,89 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
   const isCurrent = (path: string) => location.pathname === path;
 
   return (
-    <header className="w-full px-4 sm:px-6 pt-4 pb-2 z-40">
+    <header className="w-full px-4 sm:px-6 pt-3 pb-2 z-40">
       <div
-        className="max-w-7xl mx-auto rounded-full flex items-center justify-between px-4 sm:px-6 py-2.5 shadow-2xl backdrop-blur-md transition-all"
+        className="max-w-7xl mx-auto rounded-2xl flex items-center justify-between px-4 sm:px-6 py-2 shadow-xl transition-all"
         style={{
-          backgroundColor: 'rgba(37, 19, 6, 0.96)',
-          border: '1.5px solid rgba(244, 174, 82, 0.4)',
+          backgroundColor: '#130e0a',
+          border: '1px solid #2e2318',
         }}
       >
-        {/* Left: Geometric Monogram Icon (N / Robothon) */}
-        <Link to="/team-dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-full bg-[#D4621A] flex items-center justify-center text-[#FEF3E2] font-mono font-bold text-sm shadow-md transition-transform group-hover:scale-105">
-            N
+        {/* Left: Club Emblem + Divider + ROBOTHON 3.0 */}
+        <Link to="/team-dashboard" className="flex items-center gap-2 group shrink-0">
+          <img
+            src="/navbar_emblem.png"
+            alt="Robothon Emblem"
+            className="w-6 h-6 object-contain group-hover:scale-105 transition-transform"
+          />
+          <div className="h-4 w-px bg-stone-700/80 mx-1 hidden sm:block" />
+          <div className="flex items-center">
+            <span className="font-bold tracking-wider text-white text-sm">ROBOTHON</span>
+            <span className="font-bold text-[#ea580c] text-sm ml-1">3.0</span>
           </div>
-          <div className="hidden sm:block">
-            <span className="font-normal tracking-tight text-white text-sm">ROBOTHON</span>
-            <span className="text-[10px] text-[#F4AE52] font-mono ml-1">3.0</span>
-          </div>
+          <div className="h-4 w-px bg-stone-700/80 mx-2 hidden md:block" />
         </Link>
 
-        {/* Center: Pill Navigation Buttons */}
+        {/* Center: Segmented Navigation Pills */}
         <nav className="flex items-center gap-1 sm:gap-2">
-          {/* Bot & Checkpoints */}
+          {/* Checkpoints Tab */}
           <button
             onClick={() => {
               if (location.pathname !== '/team-dashboard') navigate('/team-dashboard');
               if (onTabChange) onTabChange('checkpoints');
             }}
-            className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-normal transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               isCurrent('/team-dashboard') && (!activeTab || activeTab === 'checkpoints')
-                ? 'bg-[#FEF3E2] text-[#2A1A0E] shadow-sm font-medium'
-                : 'text-[#FEF3E2]/70 hover:text-[#FEF3E2] hover:bg-white/5'
+                ? 'bg-[#fef4e8] border border-[#c27838] text-[#261e19] font-medium shadow-xs'
+                : 'text-[#e7dfd5]/80 hover:text-white hover:bg-white/5 font-normal'
             }`}
           >
-            <CheckSquare className="w-3.5 h-3.5 text-[#D4621A]" />
+            <Flag
+              className={`w-3.5 h-3.5 ${
+                isCurrent('/team-dashboard') && (!activeTab || activeTab === 'checkpoints')
+                  ? 'text-[#ea580c]'
+                  : 'text-[#d97706]'
+              }`}
+            />
             <span>Checkpoints</span>
           </button>
 
-          {/* Quizzes */}
+          {/* Quizzes Tab */}
           <button
             onClick={() => {
               if (location.pathname !== '/team-dashboard') navigate('/team-dashboard');
               if (onTabChange) onTabChange('quizzes');
             }}
-            className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-normal transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               isCurrent('/team-dashboard') && activeTab === 'quizzes'
-                ? 'bg-[#FEF3E2] text-[#2A1A0E] shadow-sm font-medium'
-                : 'text-[#FEF3E2]/70 hover:text-[#FEF3E2] hover:bg-white/5'
+                ? 'bg-[#fef4e8] border border-[#c27838] text-[#261e19] font-medium shadow-xs'
+                : 'text-[#e7dfd5]/80 hover:text-white hover:bg-white/5 font-normal'
             }`}
           >
-            <HelpCircle className="w-3.5 h-3.5 text-[#F4AE52]" />
+            <FileText
+              className={`w-3.5 h-3.5 ${
+                isCurrent('/team-dashboard') && activeTab === 'quizzes'
+                  ? 'text-[#ea580c]'
+                  : 'text-[#d97706]'
+              }`}
+            />
             <span>Quizzes</span>
           </button>
 
-          {/* Live Leaderboard */}
+          {/* Leaderboard Tab */}
           <button
             onClick={() => navigate('/leaderboard')}
-            className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-normal transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               isCurrent('/leaderboard')
-                ? 'bg-[#FEF3E2] text-[#2A1A0E] shadow-sm font-medium'
-                : 'text-[#FEF3E2]/70 hover:text-[#FEF3E2] hover:bg-white/5'
+                ? 'bg-[#fef4e8] border border-[#c27838] text-[#261e19] font-medium shadow-xs'
+                : 'text-[#e7dfd5]/80 hover:text-white hover:bg-white/5 font-normal'
             }`}
           >
-            <Trophy className="w-3.5 h-3.5 text-[#F4AE52]" />
+            <Trophy
+              className={`w-3.5 h-3.5 ${
+                isCurrent('/leaderboard') ? 'text-[#ea580c]' : 'text-[#d97706]'
+              }`}
+            />
             <span>Leaderboard</span>
           </button>
 
@@ -101,10 +121,10 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
           {currentRole === 'admin' && (
             <button
               onClick={() => navigate('/admin-dashboard')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-normal transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
                 isCurrent('/admin-dashboard')
-                  ? 'bg-[#D4621A] text-[#FEF3E2] shadow-sm'
-                  : 'text-[#F4AE52] hover:bg-[#D4621A]/20'
+                  ? 'bg-[#ea580c] text-white font-medium shadow-xs'
+                  : 'text-[#d97706] hover:bg-[#ea580c]/20 font-normal'
               }`}
             >
               <Shield className="w-3.5 h-3.5" />
@@ -113,12 +133,12 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
           )}
         </nav>
 
-        {/* Right: Circular Profile / Role-Switcher Avatar */}
+        {/* Right: Circular Profile / Role Switcher Avatar */}
         <div className="relative">
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="w-9 h-9 rounded-full bg-[#3D2414] border border-[#F4AE52]/40 text-[#F4AE52] flex items-center justify-center font-mono text-xs font-bold shadow-md hover:border-[#F4AE52] transition-colors"
+            className="w-8 h-8 rounded-full bg-[#20150e] border border-[#784e27] hover:border-[#ea580c] text-[#d97706] flex items-center justify-center font-mono text-xs font-bold transition-all shadow-xs"
             title="Profile & Role Switcher"
           >
             {currentRole === 'admin' ? 'A' : 'P'}
@@ -128,18 +148,20 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
             <div
               className="absolute right-0 mt-2 w-52 rounded-2xl shadow-2xl p-2 z-50 text-xs border"
               style={{
-                backgroundColor: '#2A1A0E',
-                borderColor: 'rgba(254, 243, 226, 0.16)',
+                backgroundColor: '#1c140e',
+                borderColor: 'rgba(234, 88, 12, 0.25)',
               }}
             >
-              <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[#8C7360] border-b border-white/10">
-                Current Role Switcher
+              <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-stone-400 border-b border-white/10">
+                Switch Role / View
               </div>
 
               <button
                 onClick={() => handleRoleSelect('participant')}
                 className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                  currentRole === 'participant' ? 'bg-[#D4621A] text-[#FEF3E2]' : 'text-slate-300 hover:bg-white/5'
+                  currentRole === 'participant'
+                    ? 'bg-[#ea580c] text-white font-semibold'
+                    : 'text-stone-300 hover:bg-white/5'
                 }`}
               >
                 <span>Participant View</span>
@@ -149,7 +171,9 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
               <button
                 onClick={() => handleRoleSelect('admin')}
                 className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                  currentRole === 'admin' ? 'bg-[#D4621A] text-[#FEF3E2]' : 'text-slate-300 hover:bg-white/5'
+                  currentRole === 'admin'
+                    ? 'bg-[#ea580c] text-white font-semibold'
+                    : 'text-stone-300 hover:bg-white/5'
                 }`}
               >
                 <span>Tech Team Admin</span>
@@ -159,7 +183,9 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
               <button
                 onClick={() => handleRoleSelect('public')}
                 className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                  currentRole === 'public' ? 'bg-[#D4621A] text-[#FEF3E2]' : 'text-slate-300 hover:bg-white/5'
+                  currentRole === 'public'
+                    ? 'bg-[#ea580c] text-white font-semibold'
+                    : 'text-stone-300 hover:bg-white/5'
                 }`}
               >
                 <span>Public Leaderboard</span>
@@ -169,12 +195,12 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
               <div className="pt-1.5 mt-1 border-t border-white/10">
                 <button
                   onClick={() => {
-                    if (window.confirm('Reset all demo data?')) {
+                    if (window.confirm('Reset all demo data to default?')) {
                       resetStoreToDefaults();
                       window.location.reload();
                     }
                   }}
-                  className="w-full text-left px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center gap-1.5"
+                  className="w-full text-left px-3 py-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 flex items-center gap-1.5"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Reset Demo State</span>

@@ -4,23 +4,35 @@ import { getStoredTeams, getStoredCheckpoints } from '../../services/stateStore'
 import { applyForCheckpointReview } from '../../services/backendService';
 import { fetchQuiz, submitQuizAnswers } from '../../services/quizService';
 import { Bot3DViewer, SubsystemKey, SUBSYSTEMS_DATA } from '../../components/bot/Bot3DViewer';
-import SpringCheck from '../../components/common/SpringCheck';
-import SwipeRow from '../../components/common/SwipeRow';
 import {
-  CheckCircle2,
-  Clock,
-  Lock,
-  Send,
+  Trophy,
+  Settings,
+  Check,
   Play,
+  Lock,
+  Clock,
+  Send,
   Award,
   ChevronRight,
-  AlertCircle,
-  HelpCircle,
   Sparkles,
-  Cpu,
-  Layers,
-  ChevronLeft,
 } from 'lucide-react';
+
+const thumbnailMap: Record<string, string> = {
+  'cp-1': '/thumbnails/cp1_motor.png',
+  '1': '/thumbnails/cp1_motor.png',
+  'cp-2': '/thumbnails/cp2_l298n.png',
+  '2': '/thumbnails/cp2_l298n.png',
+  'cp-3': '/thumbnails/cp3_esp32.png',
+  '3': '/thumbnails/cp3_esp32.png',
+  'cp-4': '/thumbnails/cp4_code.png',
+  '4': '/thumbnails/cp4_code.png',
+  'cp-5': '/thumbnails/cp5_battery.png',
+  '5': '/thumbnails/cp5_battery.png',
+  'cp-6': '/thumbnails/cp6_ble.png',
+  '6': '/thumbnails/cp6_ble.png',
+  'cp-7': '/thumbnails/cp7_chassis.png',
+  '7': '/thumbnails/cp7_chassis.png',
+};
 
 interface ParticipantDashboardProps {
   activeTab?: string;
@@ -35,7 +47,7 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
 }) => {
   const [team, setTeam] = useState<MockTeam | null>(null);
   const [checkpoints, setCheckpoints] = useState<MockCheckpoint[]>([]);
-  const [activeSubsystem, setActiveSubsystem] = useState<SubsystemKey>('motors');
+  const [activeSubsystem, setActiveSubsystem] = useState<SubsystemKey>('wires');
   const [activeCpIndex, setActiveCpIndex] = useState<number>(2); // CP 03 active by default
 
   // Quiz state
@@ -141,49 +153,71 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
   const approvedCount = checkpoints.filter((c) => c.status === 'approved').length;
 
   return (
-    <div className="w-full min-h-[calc(100vh-65px)] bg-[#FEF3E2] text-[#251306] flex flex-col justify-between p-4 sm:p-6 lg:p-8">
-      {/* Top Participant Status Header */}
+    <div className="w-full min-h-[calc(100vh-65px)] bg-[#f6f1e8] text-stone-900 flex flex-col justify-between p-4 sm:p-6 lg:p-8 font-sans">
+      {/* 1. Current Stage & Team Header Bar (Exact Match: User Image 2 & 4) */}
       <div className="max-w-7xl mx-auto w-full mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-[#F4AE52]/40 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#251306] text-[#FEF3E2] flex items-center justify-center font-mono font-bold text-sm border border-[#F4AE52]/50 shadow-md">
+        <div className="w-full rounded-2xl bg-[#fdfcf9] border border-[#ebe4d6] shadow-xs px-5 py-3.5 flex flex-wrap items-center justify-between gap-4">
+          {/* Left: Team Number Badge + Name + Round + Stage */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-[#1c120c] border-2 border-[#b46b2b] text-white flex items-center justify-center font-mono font-bold text-base shadow-xs shrink-0">
               01
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-bold text-[#251306] tracking-tight">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-base sm:text-lg font-bold text-stone-900 tracking-tight">
                   {team?.teamName || 'AquaPulse Robotics'}
                 </h1>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#dcfce7] border border-[#bbf7d0] text-[#047857] text-[11px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
                   Round 2 Active
                 </span>
               </div>
-              <p className="text-xs font-mono text-[#251306]/70">
-                TABLE 01 • Current Stage: <span className="font-semibold text-[#D4621A]">{activeCheckpoint?.code || 'CP 03'}</span>
+              <p className="text-xs font-mono text-stone-500 mt-0.5">
+                TABLE 01 <span className="text-stone-300 mx-1">•</span> Current Stage:{' '}
+                <span className="font-bold text-[#ea580c]">{activeCheckpoint?.code || 'CP 01'}</span>
               </p>
             </div>
           </div>
 
-          {/* Points Breakdown Pill */}
-          <div className="flex items-center gap-2 font-mono text-xs">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FEF3E2] border border-[#F4AE52]/40 text-[#251306]/80 text-[11px]">
-              <span>CP: <strong className="text-[#251306]">{team?.checkpointPoints || 0}</strong></span>
-              <span>+</span>
-              <span>Quiz: <strong className="text-[#251306]">{team?.quizPoints || 0}</strong></span>
-              <span>+</span>
-              <span>Mini: <strong className="text-[#251306]">{team?.miniGamePoints || 0}</strong></span>
+          {/* Right: Point breakdown + Total Points Trophy Card */}
+          <div className="flex items-center gap-3">
+            {/* 3-column Point Breakdown Pill */}
+            <div className="hidden sm:flex items-center gap-4 px-4 py-2 rounded-xl bg-[#fbf9f5] border border-[#e8dfcf]">
+              <div className="text-center px-1">
+                <div className="text-[10px] text-stone-500 font-medium tracking-wide">CP:</div>
+                <div className="text-sm font-bold text-stone-900">{team?.checkpointPoints || 125}</div>
+              </div>
+              <div className="h-6 w-px bg-stone-300/80" />
+              <div className="text-center px-1">
+                <div className="text-[10px] text-stone-500 font-medium tracking-wide">Quiz:</div>
+                <div className="text-sm font-bold text-stone-900">{team?.quizPoints || 90}</div>
+              </div>
+              <div className="h-6 w-px bg-stone-300/80" />
+              <div className="text-center px-1">
+                <div className="text-[10px] text-stone-500 font-medium tracking-wide">Mini:</div>
+                <div className="text-sm font-bold text-stone-900">{team?.miniGamePoints || 30}</div>
+              </div>
             </div>
-            <div className="px-3.5 py-1.5 rounded-xl bg-[#251306] text-[#FEF3E2] flex items-center gap-1.5 shadow-sm border border-[#F4AE52]/40">
-              <span className="text-[10px] uppercase text-[#F4AE52]">Total:</span>
-              <span className="text-sm font-bold text-[#FEF3E2]">{team?.totalPoints || 0} pts</span>
+
+            {/* Dark Total Points Box */}
+            <div className="px-4 py-2 rounded-xl bg-[#1a120c] border border-[#332216] flex items-center gap-3 shadow-xs">
+              <Trophy className="w-5 h-5 text-[#ea580c] shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-[9px] uppercase tracking-wider text-stone-400 font-medium leading-none">
+                  Total
+                </span>
+                <span className="text-base font-black text-[#ea580c] leading-tight">
+                  {team?.totalPoints || 245} pts
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Two-Column Interactive Workspace */}
+      {/* 2. Main Two-Column Interactive Workspace */}
       <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start my-auto">
-        {/* Left Column (lg:col-span-6): 3D Observation Aperture & Controls */}
+        {/* Left Column (lg:col-span-6): 3D Autonomous Bot Stage */}
         <div className="lg:col-span-6 flex flex-col items-center justify-center">
           {activeTab === 'checkpoints' ? (
             <div className="w-full flex flex-col items-center">
@@ -196,26 +230,23 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
           ) : activeQuiz ? (
             /* Quiz Active Viewport */
             <div
-              className="w-full aspect-square max-w-[460px] rounded-full p-8 flex flex-col items-center justify-center text-center relative shadow-2xl border-2 border-[#F4AE52]"
+              className="w-full aspect-square max-w-[460px] rounded-3xl p-8 flex flex-col items-center justify-center text-center relative shadow-2xl border-2 border-[#ea580c] bg-[#141210]"
               style={{
-                backgroundColor: '#251306',
-                boxShadow: '0 20px 50px rgba(37,19,6,0.35), 0 0 30px rgba(244,174,82,0.2)',
+                boxShadow: '0 20px 50px rgba(20,18,16,0.35), 0 0 30px rgba(234,88,12,0.2)',
               }}
             >
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4AE52]">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#ea580c] font-bold">
                 Active Time Trial
               </span>
-              <h3 className="text-lg font-normal text-white mt-1 px-4">
-                {activeQuiz.title}
-              </h3>
+              <h3 className="text-lg font-bold text-white mt-1 px-4">{activeQuiz.title}</h3>
 
               {/* Countdown Display */}
-              <div className="my-5 font-mono font-bold text-4xl text-[#F4AE52]">
+              <div className="my-5 font-mono font-bold text-4xl text-[#ea580c]">
                 {Math.floor(quizSecondsLeft / 60)}:
                 {String(quizSecondsLeft % 60).padStart(2, '0')}
               </div>
 
-              <div className="px-4 py-1.5 rounded-full bg-white/10 border border-[#F4AE52]/30 text-xs font-mono text-[#FEF3E2]">
+              <div className="px-4 py-1.5 rounded-full bg-white/10 border border-[#ea580c]/30 text-xs font-mono text-stone-200">
                 Question {currentQuestionIdx + 1} of {activeQuiz.questions.length}
               </div>
 
@@ -225,9 +256,9 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
                     key={idx}
                     className={`h-1.5 rounded-full transition-all ${
                       idx === currentQuestionIdx
-                        ? 'bg-[#D4621A] w-6'
+                        ? 'bg-[#ea580c] w-6'
                         : quizAnswers[activeQuiz.questions[idx].id] !== undefined
-                        ? 'bg-[#F4AE52] w-3'
+                        ? 'bg-[#f97316] w-3'
                         : 'bg-white/20 w-3'
                     }`}
                   />
@@ -236,27 +267,28 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
             </div>
           ) : (
             /* Quiz Selection Slate */
-            <div className="w-full aspect-square max-w-[460px] rounded-3xl p-8 flex flex-col items-center justify-center text-center bg-white/70 border border-[#F4AE52]/40 shadow-md">
-              <Award className="w-12 h-12 text-[#D4621A] mb-3" />
-              <h3 className="text-xl font-bold text-[#251306]">Quizzes & Assessment</h3>
-              <p className="text-xs text-[#251306]/70 mt-1 max-w-sm font-mono">
-                Round 1 Elimination Quiz qualifies Top 50 teams. Round 3 Component Quiz awards extra hardware components.
+            <div className="w-full aspect-square max-w-[460px] rounded-3xl p-8 flex flex-col items-center justify-center text-center bg-[#fdfcf9] border border-[#e8dfcf] shadow-md">
+              <Award className="w-12 h-12 text-[#ea580c] mb-3" />
+              <h3 className="text-xl font-bold text-stone-900">Quizzes & Assessment</h3>
+              <p className="text-xs text-stone-600 mt-1 max-w-sm font-mono">
+                Round 1 Elimination Quiz qualifies Top 50 teams. Round 3 Component Quiz awards extra
+                hardware components.
               </p>
               <div className="mt-6 flex flex-col gap-3 w-full max-w-xs">
                 <button
                   type="button"
                   onClick={() => handleStartQuiz('quiz-1')}
-                  className="w-full py-2.5 rounded-xl bg-[#251306] text-[#FEF3E2] hover:bg-[#3D2414] font-medium text-xs flex items-center justify-center gap-2 border border-[#F4AE52]/40 shadow-sm transition-all"
+                  className="w-full py-2.5 rounded-xl bg-[#1c120c] text-white hover:bg-[#2d1f15] font-medium text-xs flex items-center justify-center gap-2 border border-[#b46b2b]/40 shadow-sm transition-all"
                 >
-                  <Play className="w-3.5 h-3.5 text-[#F4AE52]" />
+                  <Play className="w-3.5 h-3.5 text-[#ea580c]" />
                   Launch Quiz 1 (Elimination)
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStartQuiz('quiz-2')}
-                  className="w-full py-2.5 rounded-xl bg-white hover:bg-[#FEF3E2] text-[#251306] font-medium text-xs flex items-center justify-center gap-2 border border-[#F4AE52]/60 shadow-sm transition-all"
+                  className="w-full py-2.5 rounded-xl bg-white hover:bg-[#fffbf5] text-stone-900 font-medium text-xs flex items-center justify-center gap-2 border border-[#ea580c]/60 shadow-sm transition-all"
                 >
-                  <Play className="w-3.5 h-3.5 text-[#D4621A]" />
+                  <Play className="w-3.5 h-3.5 text-[#ea580c]" />
                   Launch Quiz 2 (Components)
                 </button>
               </div>
@@ -264,183 +296,130 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
           )}
         </div>
 
-        {/* Right Column (lg:col-span-6): 7 Checkpoints Side Menu using SwipeRow & SpringCheck */}
-        <div className="lg:col-span-6 w-full flex flex-col justify-center space-y-4">
+        {/* Right Column (lg:col-span-6): Boat-Building Milestones Timeline & Cards (Exact Match: User Image 1 & 4) */}
+        <div className="lg:col-span-6 w-full flex flex-col justify-center">
           {activeTab === 'checkpoints' ? (
-            <>
-              {/* Header */}
-              <div className="flex items-center justify-between pb-1 px-1">
-                <div>
-                  <h2 className="text-xl font-bold text-[#251306] tracking-tight">
-                    Boat-Building Milestones
-                  </h2>
-                  <p className="text-xs text-[#251306]/70 font-mono">
-                    Swipe left for review actions • Click card to isolate 3D components
-                  </p>
+            <div className="rounded-3xl bg-[#fdfcf9] border border-[#e8dfcf] p-6 shadow-xs">
+              {/* Header: Gear Icon + Title + Progress Counter */}
+              <div className="flex items-start justify-between pb-3 border-b border-[#eee7db]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#fff4eb] border border-[#fed7aa] flex items-center justify-center text-[#ea580c] shrink-0">
+                    <Settings className="w-5 h-5 text-[#ea580c]" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-stone-900 tracking-tight">
+                      Boat-Building Milestones
+                    </h2>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Complete each checkpoint to build your autonomous boat prototype.
+                    </p>
+                  </div>
                 </div>
-                <span className="text-xs font-mono font-bold text-[#251306] px-3.5 py-1.5 rounded-full bg-white/80 border border-[#F4AE52]/50 shadow-sm">
-                  <span className="text-[#D4621A]">{approvedCount}</span> / 7 Cleared
-                </span>
+
+                <div className="flex flex-col items-end shrink-0 ml-2">
+                  <span className="text-xs font-bold text-stone-800">
+                    <span className="text-[#ea580c]">{approvedCount}</span> / {checkpoints.length} Cleared
+                  </span>
+                  {/* Progress Bar */}
+                  <div className="w-24 sm:w-28 h-1.5 bg-[#ede8dc] rounded-full overflow-hidden mt-1.5">
+                    <div
+                      className="h-full bg-[#ea580c] transition-all duration-300 rounded-full"
+                      style={{
+                        width: `${(approvedCount / (checkpoints.length || 7)) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Checkpoints Interactive Stack */}
-              <div className="space-y-3 max-h-[62vh] overflow-y-auto pr-1">
+              {/* Connected Timeline Checklist */}
+              <div className="relative mt-5 pl-8 pr-1 space-y-3.5 max-h-[62vh] overflow-y-auto">
+                {/* Continuous Vertical Timeline Line */}
+                <div className="absolute left-[11px] top-6 bottom-6 w-0.5 bg-[#ddd5c8] pointer-events-none" />
+
                 {checkpoints.map((cp, idx) => {
                   const isSelected = activeCpIndex === idx;
                   const isApproved = cp.status === 'approved';
                   const isPending = cp.status === 'pending_review';
                   const isAvailable = cp.status === 'available';
                   const isLocked = cp.status === 'locked';
-
-                  // Swipe actions for SwipeRow
-                  const rowActions = isAvailable
-                    ? [
-                        {
-                          id: 'apply-review',
-                          label: 'Review',
-                          icon: <Send className="w-4 h-4 text-white" />,
-                          onSelect: () => handleApplyReview(cp.id),
-                        },
-                      ]
-                    : isApproved
-                    ? [
-                        {
-                          id: 'approved-done',
-                          label: 'Cleared',
-                          icon: <CheckCircle2 className="w-4 h-4 text-white" />,
-                          color: '#10b981',
-                        },
-                      ]
-                    : isPending
-                    ? [
-                        {
-                          id: 'pending-action',
-                          label: 'In Review',
-                          icon: <Clock className="w-4 h-4 text-white" />,
-                          color: '#F4AE52',
-                        },
-                      ]
-                    : [
-                        {
-                          id: 'locked-action',
-                          label: 'Locked',
-                          icon: <Lock className="w-4 h-4 text-white" />,
-                          color: '#64748b',
-                        },
-                      ];
+                  const thumbnailSrc =
+                    thumbnailMap[cp.id] || thumbnailMap[String(cp.stepNumber)] || '/thumbnails/cp1_motor.png';
 
                   return (
-                    <div
-                      key={cp.id}
-                      onClick={() => handleSelectCheckpoint(idx, cp)}
-                      className="cursor-pointer transition-transform duration-200"
-                    >
-                      {/* React Bits <SwipeRow /> Container */}
-                      <SwipeRow
-                        actions={rowActions}
-                        direction="left"
-                        actionWidth={88}
-                        height={64}
-                        radius={16}
-                        fullSwipe={false}
-                        actionColor="#D4621A"
-                        drawerColor="#1a0f06"
-                        rowColor="#251306"
-                        textColor="#f5f5f5"
-                        style={{ marginBottom: 8 }}
-                        className={`transition-all duration-200 shadow-md border ${
-                          isSelected
-                            ? 'border-[#F4AE52] ring-2 ring-[#F4AE52]/40 shadow-lg scale-[1.01]'
+                    <div key={cp.id} className="relative flex items-start group">
+                      {/* Left Timeline Node Indicator */}
+                      <div className="absolute -left-8 top-5 shrink-0">
+                        {isApproved ? (
+                          <div className="w-6 h-6 rounded-full bg-[#059669] text-white flex items-center justify-center shadow-xs z-10">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        ) : isAvailable || isSelected ? (
+                          <div className="w-6 h-6 rounded-full bg-white border-2 border-[#ea580c] flex items-center justify-center shadow-xs z-10">
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#ea580c]" />
+                          </div>
+                        ) : isPending ? (
+                          <div className="w-6 h-6 rounded-full bg-white border-2 border-[#f59e0b] flex items-center justify-center shadow-xs z-10">
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] animate-ping" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-[#ccc4b5] border-2 border-stone-300 flex items-center justify-center z-10 mt-0.5 ml-0.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-stone-500" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Checkpoint Card */}
+                      <div
+                        onClick={() => handleSelectCheckpoint(idx, cp)}
+                        className={`w-full rounded-2xl p-4 transition-all duration-200 cursor-pointer ${
+                          isAvailable || isSelected
+                            ? 'bg-[#fffbf5] border-2 border-[#ea580c]/80 shadow-sm ring-2 ring-[#ea580c]/10'
                             : isApproved
-                            ? 'border-emerald-500/40 hover:border-emerald-500/70'
+                            ? 'bg-white/95 border border-[#eee7db] shadow-xs hover:border-[#ea580c]/40'
                             : isPending
-                            ? 'border-[#F4AE52]/60 hover:border-[#F4AE52]'
-                            : isAvailable
-                            ? 'border-[#D4621A]/70 hover:border-[#D4621A]'
-                            : 'border-white/10 opacity-70'
+                            ? 'bg-[#fffdfa] border-2 border-[#f59e0b]/80 shadow-xs'
+                            : 'bg-[#f8f6f0]/80 border border-[#eae3d5] opacity-80 hover:opacity-95'
                         }`}
                       >
-                        <div className="w-full h-full flex items-center justify-between gap-3">
-                          {/* Left: SpringCheck + Code + Title */}
-                          <div className="flex items-center gap-3 min-w-0">
-                            {/* React Bits <SpringCheck /> component */}
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="shrink-0 flex items-center"
-                            >
-                              <SpringCheck
-                                label=""
-                                checked={isApproved}
-                                disabled={true}
-                                color="#ffffff"
-                                fillColor="#10b981"
-                                checkColor="#0b0b0f"
-                                boxSize={22}
-                                boxRadius={7}
-                                bounce={0.25}
-                              />
+                        <div className="flex items-center justify-between gap-3">
+                          {/* Title, Code & Points Row */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[11px] font-mono font-bold shrink-0 ${
+                                  isLocked ? 'bg-[#38332e] text-stone-300' : 'bg-[#1c120c] text-white'
+                                }`}
+                              >
+                                {cp.code}
+                              </span>
+                              <h3 className="text-sm font-bold text-stone-900 truncate">{cp.title}</h3>
                             </div>
 
-                            {/* Checkpoint Code Pill */}
-                            <span className="w-12 py-1 rounded-md bg-[#382314] text-[#F4AE52] font-mono text-[11px] font-bold text-center shrink-0 border border-[#F4AE52]/30">
-                              {cp.code}
-                            </span>
-
-                            {/* Title & Points Category */}
-                            <div className="truncate">
-                              <h3 className="text-xs sm:text-sm font-semibold text-white truncate">
-                                {cp.title}
-                              </h3>
-                              <span className="text-[10px] font-mono text-[#F4AE52] flex items-center gap-1.5">
-                                <strong className="text-[#F4AE52]">+{cp.points} pts</strong>
-                                <span className="text-white/40">•</span>
-                                <span className="uppercase text-[#FEF3E2]/70">{SUBSYSTEMS_DATA[cp.subsystem as SubsystemKey]?.category || 'Hardware'}</span>
+                            <div className="flex items-center gap-1.5 text-xs mt-1">
+                              <span
+                                className={`font-bold ${
+                                  isLocked ? 'text-stone-500' : 'text-[#ea580c]'
+                                }`}
+                              >
+                                +{cp.points} pts
+                              </span>
+                              <span className="text-stone-300">•</span>
+                              <span className="text-[10px] uppercase tracking-wider font-semibold text-stone-400">
+                                {SUBSYSTEMS_DATA[cp.subsystem as SubsystemKey]?.category || 'HARDWARE'}
                               </span>
                             </div>
                           </div>
 
-                          {/* Right: Status Pill */}
-                          <div className="shrink-0">
+                          {/* Right Status / Action Badge */}
+                          <div className="shrink-0 flex items-center gap-2">
                             {isApproved && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[#dcfce7] text-[#047857]">
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                                 Cleared
                               </span>
                             )}
-                            {isPending && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#F4AE52]/20 text-[#F4AE52] border border-[#F4AE52]/50">
-                                <Clock className="w-3 h-3 text-[#F4AE52] animate-spin" />
-                                In Review
-                              </span>
-                            )}
-                            {isAvailable && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#D4621A] text-white shadow-sm">
-                                Active Step
-                              </span>
-                            )}
-                            {isLocked && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono text-white/40 bg-white/5 border border-white/10">
-                                <Lock className="w-3 h-3" />
-                                Locked
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </SwipeRow>
 
-                      {/* Expanded Detail Drawer when Selected */}
-                      {isSelected && (
-                        <div className="mt-1 mb-3 p-4 rounded-xl bg-[#251306] border border-[#F4AE52]/40 shadow-lg text-xs text-[#FEF3E2] space-y-3 animate-fadeIn">
-                          <p className="leading-relaxed font-sans text-[#FEF3E2]/90">
-                            {cp.description}
-                          </p>
-
-                          <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                            <span className="text-[10px] font-mono text-[#F4AE52]">
-                              Subsystem: <strong className="text-white uppercase">{cp.subsystem}</strong>
-                            </span>
-
-                            {/* Direct Action Button in Vibrant Terracotta #D4621A */}
                             {isAvailable && (
                               <button
                                 type="button"
@@ -449,139 +428,170 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
                                   handleApplyReview(cp.id);
                                 }}
                                 disabled={submittingReview}
-                                className="px-5 py-2 rounded-xl bg-[#D4621A] hover:bg-[#b84e0e] text-[#FEF3E2] text-xs font-semibold flex items-center gap-2 shadow-md transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-95"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#ea580c] hover:bg-[#c2410c] text-white shadow-xs transition-colors"
                               >
-                                <Send className="w-3.5 h-3.5" />
-                                <span>{submittingReview ? 'Dispatching Ticket...' : 'Apply for Physical Review'}</span>
+                                <Play className="w-3 h-3 fill-white text-white" />
+                                {submittingReview ? 'Requesting...' : 'Active Step'}
                               </button>
                             )}
 
                             {isPending && (
-                              <span className="text-[11px] font-mono text-[#F4AE52] font-semibold flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 animate-spin" />
-                                Review ticket active on Admin queue
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[#fef3c7] text-[#b45309] border border-[#fde68a]">
+                                <Clock className="w-3 h-3 animate-spin" />
+                                In Review
                               </span>
                             )}
 
-                            {isApproved && (
-                              <span className="text-[11px] font-mono text-emerald-400 font-semibold flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                Milestone verified & +{cp.points} pts added
+                            {isLocked && (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-[#e8e4db] text-stone-500">
+                                <Lock className="w-3 h-3 text-stone-500" />
+                                Locked
                               </span>
                             )}
+
+                            {/* Component Thumbnail on far right */}
+                            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl border border-stone-200/90 overflow-hidden shrink-0 bg-[#f7f5ef] p-0.5 ml-1 shadow-xs flex items-center justify-center">
+                              <img
+                                src={thumbnailSrc}
+                                alt={cp.title}
+                                className="w-full h-full object-cover rounded-lg"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/thumbnails/cp1_motor.png';
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      )}
+
+                        {/* Description Text */}
+                        <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+                          {cp.description}
+                        </p>
+
+                        {/* Expanded Drawer Action for Available Milestone */}
+                        {isSelected && isAvailable && (
+                          <div className="mt-3 pt-2.5 border-t border-[#fed7aa]/50 flex items-center justify-between">
+                            <span className="text-[11px] font-mono text-[#ea580c]">
+                              Ready for Physical Inspection?
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApplyReview(cp.id);
+                              }}
+                              disabled={submittingReview}
+                              className="px-3.5 py-1.5 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                            >
+                              <Send className="w-3 h-3" />
+                              Apply for Hardware Review
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </>
-          ) : activeQuiz ? (
-            /* Quiz Active Questions Card */
-            <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-[#F4AE52]/40 shadow-sm space-y-5">
-              <div>
-                <span className="text-[10px] font-mono uppercase text-[#D4621A] font-bold">
-                  Question {currentQuestionIdx + 1} of {activeQuiz.questions.length}
-                </span>
-                <h3 className="text-base sm:text-lg font-bold text-[#251306] mt-1">
-                  {activeQuiz.questions[currentQuestionIdx].question}
-                </h3>
-              </div>
-
-              <div className="space-y-2.5">
-                {activeQuiz.questions[currentQuestionIdx].options.map((opt, optIdx) => {
-                  const qId = activeQuiz.questions[currentQuestionIdx].id;
-                  const isChosen = quizAnswers[qId] === optIdx;
-                  return (
-                    <button
-                      key={optIdx}
-                      type="button"
-                      onClick={() => handleSelectOption(qId, optIdx)}
-                      className={`w-full text-left p-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-center justify-between ${
-                        isChosen
-                          ? 'border-[#D4621A] bg-[#D4621A]/10 text-[#D4621A] font-bold shadow-sm'
-                          : 'border-[#F4AE52]/40 bg-white/70 hover:bg-white text-[#251306]'
-                      }`}
-                    >
-                      <span>{opt}</span>
-                      <span
-                        className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
-                          isChosen ? 'border-[#D4621A] bg-[#D4621A] text-white' : 'border-[#251306]/30'
-                        }`}
-                      >
-                        {isChosen ? '✓' : ''}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-[#F4AE52]/30">
-                <button
-                  type="button"
-                  disabled={currentQuestionIdx === 0}
-                  onClick={() => setCurrentQuestionIdx((p) => Math.max(0, p - 1))}
-                  className="px-4 py-2 rounded-xl border border-[#F4AE52]/50 text-xs font-mono text-[#251306] disabled:opacity-30"
-                >
-                  Previous
-                </button>
-
-                {currentQuestionIdx < activeQuiz.questions.length - 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentQuestionIdx((p) => p + 1)}
-                    className="px-5 py-2 rounded-xl bg-[#251306] text-[#FEF3E2] text-xs font-mono font-bold hover:bg-[#3D2414] transition-all"
-                  >
-                    Next Question
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={quizSubmitting}
-                    onClick={handleQuizFinalSubmit}
-                    className="px-6 py-2 rounded-xl bg-[#D4621A] text-[#FEF3E2] text-xs font-bold hover:bg-[#b84e0e] shadow-md transition-all"
-                  >
-                    {quizSubmitting ? 'Grading...' : 'Submit Answers'}
-                  </button>
-                )}
-              </div>
             </div>
           ) : (
-            /* Quiz Completed Banner or Instructions */
-            <div className="p-6 rounded-2xl bg-white/70 border border-[#F4AE52]/40 shadow-sm space-y-4">
-              <h3 className="text-base font-bold text-[#251306]">Quiz Engine Rules</h3>
-              <ul className="text-xs font-mono text-[#251306]/80 space-y-2 list-disc list-inside">
-                <li>Round 1: 10-minute timed quiz. Only Top 50 teams qualify for Round 2.</li>
-                <li>Round 3: Component allocation challenge for supplemental hardware.</li>
-                <li>Answers are auto-evaluated and broadcast live to the Leaderboard.</li>
-              </ul>
-              {quizResultNotice && (
-                <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-900 text-xs font-mono">
-                  {quizResultNotice}
+            /* Quiz Active Questions Slate */
+            activeQuiz && (
+              <div className="p-6 rounded-3xl bg-[#fdfcf9] border border-[#e8dfcf] shadow-md space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-[#eee7db]">
+                  <h2 className="text-base font-bold text-stone-900">{activeQuiz.title}</h2>
+                  <span className="text-xs font-mono font-bold text-[#ea580c]">
+                    {Math.floor(quizSecondsLeft / 60)}:
+                    {String(quizSecondsLeft % 60).padStart(2, '0')}
+                  </span>
                 </div>
-              )}
-            </div>
+
+                {/* Question */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-stone-900">
+                    {activeQuiz.questions[currentQuestionIdx]?.question}
+                  </h4>
+                  <div className="space-y-2">
+                    {activeQuiz.questions[currentQuestionIdx]?.options.map((opt, optIdx) => {
+                      const qId = activeQuiz.questions[currentQuestionIdx].id;
+                      const isChosen = quizAnswers[qId] === optIdx;
+                      return (
+                        <button
+                          key={optIdx}
+                          type="button"
+                          onClick={() => handleSelectOption(qId, optIdx)}
+                          className={`w-full text-left p-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-center justify-between ${
+                            isChosen
+                              ? 'border-[#ea580c] bg-[#ea580c]/10 text-[#ea580c] font-bold shadow-xs'
+                              : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-800'
+                          }`}
+                        >
+                          <span>{opt}</span>
+                          <span
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
+                              isChosen ? 'border-[#ea580c] bg-[#ea580c] text-white' : 'border-stone-300'
+                            }`}
+                          >
+                            {isChosen ? '✓' : ''}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Question navigation footer */}
+                <div className="flex items-center justify-between pt-4 border-t border-stone-200">
+                  <button
+                    type="button"
+                    disabled={currentQuestionIdx === 0}
+                    onClick={() => setCurrentQuestionIdx((p) => Math.max(0, p - 1))}
+                    className="px-4 py-2 rounded-xl border border-stone-300 text-xs font-mono text-stone-700 disabled:opacity-30"
+                  >
+                    Previous
+                  </button>
+
+                  {currentQuestionIdx < activeQuiz.questions.length - 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentQuestionIdx((p) => p + 1)}
+                      className="px-5 py-2 rounded-xl bg-[#1c120c] text-white text-xs font-mono font-bold hover:bg-[#2d1f15] transition-all"
+                    >
+                      Next Question
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={quizSubmitting}
+                      onClick={handleQuizFinalSubmit}
+                      className="px-6 py-2 rounded-xl bg-[#ea580c] text-white text-xs font-bold hover:bg-[#c2410c] shadow-md transition-all"
+                    >
+                      {quizSubmitting ? 'Grading...' : 'Submit Answers'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
           )}
         </div>
       </div>
 
-      {/* Bottom Telemetry Bar */}
-      <div className="max-w-7xl mx-auto w-full mt-6 pt-3 border-t border-[#F4AE52]/30 flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-[#251306]/70">
+      {/* 3. Bottom Hardware Bench Telemetry Bar */}
+      <div className="max-w-7xl mx-auto w-full mt-6 pt-3 border-t border-stone-300/80 flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-stone-600">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-bold text-[#251306]">ROBOTHON 3.0 // HARDWARE BENCH</span>
+          <span className="font-bold text-stone-900">ROBOTHON 3.0 // AUTONOMOUS BOAT BENCH</span>
           <span>•</span>
           <span>Table 01 Active</span>
         </div>
 
         <div className="flex items-center gap-4">
           <span>
-            Active Subsystem: <strong className="text-[#D4621A] uppercase">{activeSubsystem}</strong>
+            Subsystem: <strong className="text-[#ea580c] uppercase">{activeSubsystem}</strong>
           </span>
           <span>•</span>
           <span>
-            Overall Rank: <strong className="text-[#251306]">#{team?.rank || 1}</strong>
+            Overall Rank: <strong className="text-stone-900">#{team?.rank || 1}</strong>
           </span>
           <span>•</span>
           <span className="text-emerald-700 font-bold">Top 50 Qualified</span>
