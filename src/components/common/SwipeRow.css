@@ -140,6 +140,9 @@
   z-index: 1;
   display: flex;
   align-items: center;
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
   gap: 12px;
   height: 100%;
   padding: 0 16px;
