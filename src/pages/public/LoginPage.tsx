@@ -43,14 +43,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         fontFamily: '"Space Grotesk", sans-serif',
       }}
     >
-      {/* Background Video */}
+      {/* Background Video (Human & Robotic Hands Touching Loop) */}
       <video
         autoPlay
         loop
         muted
         playsInline
-        className="fixed inset-0 w-full h-full object-cover pointer-events-none -z-20 scale-105"
-        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_215831_c6a8989c-d716-4d8d-8745-e972a2eec711.mp4"
+        className="fixed inset-0 w-full h-full object-cover pointer-events-none -z-20"
+        src="/Human_and_robotic_hands_touching_20261019014013.mp4"
       />
 
       {/* Cinematic Vignette / Glass Tint Overlay */}
@@ -58,8 +58,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         className="fixed inset-0 pointer-events-none -z-10"
         style={{
           background:
-            'radial-gradient(ellipse at center, rgba(15, 10, 7, 0.55) 0%, rgba(10, 7, 5, 0.85) 75%, rgba(5, 3, 2, 0.95) 100%)',
-          backdropFilter: 'blur(1.5px)',
+            'radial-gradient(ellipse at center, rgba(15, 10, 7, 0.35) 0%, rgba(10, 7, 5, 0.65) 75%, rgba(5, 3, 2, 0.85) 100%)',
+          backdropFilter: 'blur(0.5px)',
         }}
       />
 
