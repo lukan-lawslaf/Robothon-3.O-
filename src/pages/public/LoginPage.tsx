@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../../services/backendService';
 import { ArrowRight, Lock, Key, Sparkles, Shield, Users } from 'lucide-react';
@@ -14,6 +14,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    // Explicitly enforce muted and play to satisfy strict browser autoplay policies
+    if (videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = true;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('Video autoplay was prevented, retrying on interaction:', err);
+        });
+      }
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,33 +53,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <div
-      className="relative w-screen min-h-screen overflow-x-hidden overflow-y-auto selection:bg-[#ea580c] selection:text-white flex flex-col justify-between text-white"
+      className="relative w-full min-h-screen overflow-x-hidden overflow-y-auto selection:bg-[#ea580c] selection:text-white flex flex-col justify-between text-white bg-[#0e0a07]"
       style={{
         fontFamily: '"Space Grotesk", sans-serif',
       }}
     >
-      {/* Background Video (Human & Robotic Hands Touching Loop) */}
+      {/* 0. Background Video (Human & Robotic Hands Touching) */}
       <video
+        ref={videoRef}
         autoPlay
         loop
         muted
         playsInline
-        className="fixed inset-0 w-full h-full object-cover pointer-events-none -z-20"
-        src="/Human_and_robotic_hands_touching_20261019014013.mp4"
-      />
+        preload="auto"
+        className="fixed inset-0 w-full h-full object-cover pointer-events-none z-0"
+      >
+        <source src="/Human_and_robotic_hands_touching_20261019014013.mp4" type="video/mp4" />
+      </video>
 
-      {/* Cinematic Vignette / Glass Tint Overlay */}
+      {/* 0. Cinematic Vignette / Glass Tint Overlay */}
       <div
-        className="fixed inset-0 pointer-events-none -z-10"
+        className="fixed inset-0 pointer-events-none z-[1]"
         style={{
           background:
-            'radial-gradient(ellipse at center, rgba(15, 10, 7, 0.35) 0%, rgba(10, 7, 5, 0.65) 75%, rgba(5, 3, 2, 0.85) 100%)',
+            'radial-gradient(ellipse at center, rgba(14, 10, 7, 0.25) 0%, rgba(10, 7, 5, 0.55) 70%, rgba(5, 3, 2, 0.8) 100%)',
           backdropFilter: 'blur(0.5px)',
         }}
       />
 
       {/* 1. Top Minimal Bar */}
-      <header className="w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between z-20">
+      <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img
             src="/robotics_club_logo.svg"
@@ -82,12 +100,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="hidden md:inline-block px-3 py-1 rounded-full text-xs border border-white/15 bg-black/30 backdrop-blur-md text-white/80 font-mono tracking-tight">
+          <span className="hidden md:inline-block px-3 py-1 rounded-full text-xs border border-white/15 bg-black/40 backdrop-blur-md text-white/80 font-mono tracking-tight">
             Adaptive Scoring System
           </span>
           <Link
             to="/leaderboard"
-            className="text-xs font-mono px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-[#ea580c] text-white border border-white/20 hover:border-transparent transition-all shadow-md flex items-center gap-1.5"
+            className="text-xs font-mono px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-[#ea580c] text-white border border-white/20 hover:border-transparent transition-all shadow-md flex items-center gap-1.5 backdrop-blur-md"
           >
             <span>Live Board</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -96,10 +114,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       </header>
 
       {/* 2. Center Stage with Translucent Floating Login Module */}
-      <div className="relative flex-1 flex flex-col items-center justify-center my-6 px-4 z-10">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-6 px-4">
         {/* Subtle glowing ambient pulse behind card */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none -z-10"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[2]"
           style={{
             width: 'min(90vw, 520px)',
             height: 'min(90vw, 520px)',
@@ -110,8 +128,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         />
 
         {/* Center Headlines */}
-        <div className="text-center mb-6 max-w-xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-400 font-mono text-[11px] uppercase tracking-wider mb-3 backdrop-blur-md">
+        <div className="text-center mb-6 max-w-xl relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/35 text-orange-400 font-mono text-[11px] uppercase tracking-wider mb-3 backdrop-blur-md">
             <Sparkles className="w-3 h-3 text-[#ea580c]" />
             Studio Neural Architecture
           </div>
@@ -131,17 +149,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         {/* Floating Glassmorphism Login Card */}
         <div
-          className="w-full max-w-[420px] rounded-2xl p-6 sm:p-8 relative shadow-2xl transition-all"
+          className="w-full max-w-[420px] rounded-2xl p-6 sm:p-8 relative z-10 shadow-2xl transition-all"
           style={{
-            background: 'rgba(20, 14, 10, 0.78)',
+            background: 'rgba(20, 14, 10, 0.82)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(234, 88, 12, 0.25)',
-            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px -5px rgba(234, 88, 12, 0.15)',
+            border: '1px solid rgba(234, 88, 12, 0.3)',
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px -5px rgba(234, 88, 12, 0.18)',
           }}
         >
           {/* Pill Role Switcher */}
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-black/50 border border-white/10 mb-6">
+          <div className="grid grid-cols-2 p-1 rounded-xl bg-black/60 border border-white/10 mb-6">
             <button
               type="button"
               onClick={() => {
@@ -149,7 +167,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 setAccessCode('');
                 setErrorMessage(null);
               }}
-              className={`py-2.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'participant'
                   ? 'bg-gradient-to-r from-[#ea580c] to-[#c2410c] text-white shadow-lg font-semibold'
                   : 'text-stone-400 hover:text-white'
@@ -166,7 +184,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 setAccessCode('');
                 setErrorMessage(null);
               }}
-              className={`py-2.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'admin'
                   ? 'bg-gradient-to-r from-[#ea580c] to-[#c2410c] text-white shadow-lg font-semibold'
                   : 'text-stone-400 hover:text-white'
@@ -244,7 +262,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       </div>
 
       {/* 3. Bottom Corner Anchors */}
-      <footer className="w-full max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 z-20 text-xs border-t border-white/10">
+      <footer className="relative z-10 w-full max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs border-t border-white/10">
         <div className="text-left max-w-md">
           <p className="font-mono text-[11px] text-orange-400/90 uppercase tracking-wider">
             Autonomous Naval & Rover Dynamics
