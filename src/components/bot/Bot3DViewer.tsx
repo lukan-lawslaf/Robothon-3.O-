@@ -14,7 +14,6 @@ export interface SubsystemInfo {
   desc: string;
   specs: string;
   hotspotOffset: [number, number, number];
-  explodeVector: [number, number, number];
 }
 
 export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
@@ -26,7 +25,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     desc: '12V 300 RPM GA25 metal geared DC motors with planetary gearboxes and precision brass hex couplers.',
     specs: '12V DC | 300 RPM | 15 kg.cm Torque | 4mm D-cut Hex',
     hotspotOffset: [0.75, -0.2, -0.4],
-    explodeVector: [0, -0.7, 0],
   },
   l298n: {
     name: 'L298N Motor Driver Setup',
@@ -36,7 +34,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     desc: 'Dual H-Bridge motor driver with multi-fin black anodized heatsink and screw terminal block headers.',
     specs: 'Peak: 2A/channel | Logic: 5V TTL | Heat: Aluminum Fin',
     hotspotOffset: [0.35, 0.45, 0.4],
-    explodeVector: [0.45, 0.95, 0.45],
   },
   wires: {
     name: 'ESP32 Logic Wiring',
@@ -45,8 +42,7 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#ea580c',
     desc: 'Color-coded Dupont logic ribbon jumpers, thick 14AWG silicone 12V power leads, and rubber anti-chafe grommets.',
     specs: 'Logic: 28AWG Dupont | Power: 14AWG Silicone | Common Ground Rail',
-    hotspotOffset: [0, 0.65, 0.15],
-    explodeVector: [0, 1.85, 0],
+    hotspotOffset: [0, 0.70, 0.1],
   },
   esp32: {
     name: 'Firmware & Wi-Fi / BLE',
@@ -55,8 +51,7 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#ea580c',
     desc: 'ESP32-WROOM-32 Wi-Fi / BLE microcontroller with metal RF shield, USB-UART bridge, and 30-pin GPIO.',
     specs: 'Dual Tensilica 240MHz | 802.11 b/g/n + BLE 4.2 | 30-pin GPIO',
-    hotspotOffset: [0, 0.5, -0.55],
-    explodeVector: [0.3, 1.35, -0.65],
+    hotspotOffset: [-0.1, 0.5, -0.55],
   },
   battery: {
     name: '3S Battery Power Integration',
@@ -66,7 +61,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     desc: '11.1V 3S Li-Ion 2200mAh pack with authentic XT60 high-current gold pins and JST-XH balance lead.',
     specs: '3S1P 18650 | 2200mAh (24.4Wh) | XT60 Fused Connector',
     hotspotOffset: [-0.25, 0.55, 0.1],
-    explodeVector: [-0.35, 1.25, 0.35],
   },
   chassis: {
     name: 'Polarity & Chassis Maiden Run',
@@ -76,7 +70,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     desc: 'Bent aluminum U-channel chassis plate with front bullbar, side motor mount flanges, and aero top deck.',
     specs: '6061-T6 Alum + ABS Deck | 140x220mm | M3 Hex Socket',
     hotspotOffset: [0, -0.1, 0.7],
-    explodeVector: [0, -0.25, 0],
   },
   wheels: {
     name: 'Competition Wheels (x4)',
@@ -86,7 +79,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     desc: 'Deep-dish competition white rims with 6 cutout spokes, beadlock rivets, and 20-lug chevron rubber tires.',
     specs: 'Dia: 65mm | Aggressive 20-Lug Chevron | 12mm Hex Hub',
     hotspotOffset: [1.05, -0.1, 0.65],
-    explodeVector: [0, -0.95, 0],
   },
 };
 
@@ -109,7 +101,7 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const [explodeFactor, setExplodeFactor] = useState<number>(0.28);
+  const [explodeFactor, setExplodeFactor] = useState<number>(0);
   const [hoveredHotspot, setHoveredHotspot] = useState<SubsystemKey | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'3d' | 'top' | 'side'>('3d');
@@ -117,36 +109,46 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const botGroupRef = useRef<THREE.Group | null>(null);
   const modelPartsRef = useRef<Partial<Record<SubsystemKey, THREE.Object3D>>>({});
-  const initialPositionsRef = useRef<Partial<Record<SubsystemKey, THREE.Vector3>>>({});
 
-  // 1. Initialize Scene, Lights, Camera & Loader
+  // 1. Initialize Scene, Camera, Renderer & Load GLTF
   useEffect(() => {
     if (!mountRef.current) return;
     const container = mountRef.current;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const stage = stageRef.current;
 
-    // Studio scene matching Image 4 dark background
+    // Robust size detection: stageRef has aspect-4/3 min-h-[460px]
+    let width = stage?.clientWidth || container.clientWidth || 640;
+    let height = stage?.clientHeight || container.clientHeight || 480;
+    if (height <= 0) height = Math.round(width * 0.75) || 480;
+    if (width <= 0) width = 640;
+
     const scene = new THREE.Scene();
     scene.background = null;
     sceneRef.current = scene;
 
-    // Camera setup - zoomed closer to make bot prominent and centered
-    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
-    camera.position.set(3.0, 2.0, 3.0);
+    // Camera setup - zoomed for optimal isometric view
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    camera.position.set(4.2, 3.0, 4.0);
     cameraRef.current = camera;
 
-    // WebGL Renderer with alpha transparency onto dark card
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.35;
+    rendererRef.current = renderer;
+
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
@@ -155,43 +157,43 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.target.set(0, 0, 0);
-    controls.minDistance = 1.8;
-    controls.maxDistance = 7.5;
-    controls.maxPolarAngle = Math.PI / 2 + 0.1;
+    controls.minDistance = 2.0;
+    controls.maxDistance = 9.0;
+    controls.maxPolarAngle = Math.PI / 2 + 0.05;
     controlsRef.current = controls;
 
     // Studio Lighting
-    scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+    scene.add(new THREE.AmbientLight(0xffffff, 1.8));
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 3.0);
-    keyLight.position.set(5, 8, 6);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
+    keyLight.position.set(5, 9, 6);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0xea580c, 1.8);
+    const rimLight = new THREE.DirectionalLight(0xea580c, 2.0);
     rimLight.position.set(-6, 4, -4);
     scene.add(rimLight);
 
-    const fillLight = new THREE.DirectionalLight(0xfdba74, 1.0);
+    const fillLight = new THREE.DirectionalLight(0xfdba74, 1.2);
     fillLight.position.set(0, -3, 3);
     scene.add(fillLight);
 
-    // Studio ground shadow
-    const shadowGeo = new THREE.PlaneGeometry(4.0, 4.0);
+    // Ground shadow plane
+    const shadowGeo = new THREE.PlaneGeometry(5.0, 5.0);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: 0x000000,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.5,
       depthWrite: false,
     });
     const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
     shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.position.y = -0.58;
+    shadowPlane.position.y = -0.65;
     scene.add(shadowPlane);
 
-    // Bot Root
+    // Root Group
     const botRoot = new THREE.Group();
     scene.add(botRoot);
     botGroupRef.current = botRoot;
@@ -204,13 +206,12 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
         setIsLoading(false);
         const botModel = gltf.scene;
 
-        // Calculate bounding box & center geometry
+        // Perfectly center geometry at (0, 0, 0)
         const box = new THREE.Box3().setFromObject(botModel);
         const center = new THREE.Vector3();
         box.getCenter(center);
-        botModel.position.x = -center.x;
-        botModel.position.y = -center.y + 0.18;
-        botModel.position.z = -center.z;
+        botModel.position.sub(center);
+        botModel.position.y += 0.20;
 
         botModel.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
@@ -220,38 +221,28 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
           }
         });
 
-        // Map subsystems
+        // Map the 7 distinct subsystem groups
         const mappedParts: Partial<Record<SubsystemKey, THREE.Object3D>> = {};
-        const initPositions: Partial<Record<SubsystemKey, THREE.Vector3>> = {};
-
         botModel.traverse((obj) => {
-          const name = obj.name.toLowerCase();
-          if (name.includes('motor') && !mappedParts.motors) mappedParts.motors = obj;
-          else if (name.includes('driver') || name.includes('l298n')) mappedParts.l298n = obj;
-          else if (name.includes('esp') || name.includes('mcu')) mappedParts.esp32 = obj;
-          else if (name.includes('batt') || name.includes('power')) mappedParts.battery = obj;
-          else if (name.includes('wire') || name.includes('cable')) mappedParts.wires = obj;
-          else if (name.includes('wheel') || name.includes('tire')) mappedParts.wheels = obj;
-          else if ((name.includes('chassis') || name.includes('frame')) && !mappedParts.chassis) mappedParts.chassis = obj;
-        });
-
-        if (!mappedParts.chassis) mappedParts.chassis = botModel;
-        if (!mappedParts.motors) mappedParts.motors = botModel;
-        if (!mappedParts.l298n) mappedParts.l298n = botModel;
-        if (!mappedParts.esp32) mappedParts.esp32 = botModel;
-        if (!mappedParts.battery) mappedParts.battery = botModel;
-        if (!mappedParts.wires) mappedParts.wires = botModel;
-        if (!mappedParts.wheels) mappedParts.wheels = botModel;
-
-        (Object.keys(mappedParts) as SubsystemKey[]).forEach((key) => {
-          const part = mappedParts[key];
-          if (part) {
-            initPositions[key] = part.position.clone();
+          const name = (obj.name || '').toLowerCase();
+          if ((name.includes('dc_motor') || name === 'motors' || name === 'dc_motors') && !mappedParts.motors) {
+            mappedParts.motors = obj;
+          } else if ((name.includes('l298n') || name.includes('driver')) && !mappedParts.l298n) {
+            mappedParts.l298n = obj;
+          } else if ((name.includes('esp32') || name.includes('wroom')) && !mappedParts.esp32) {
+            mappedParts.esp32 = obj;
+          } else if ((name.includes('battery') || name.includes('batt')) && !mappedParts.battery) {
+            mappedParts.battery = obj;
+          } else if ((name.includes('wire') || name.includes('harness')) && !mappedParts.wires) {
+            mappedParts.wires = obj;
+          } else if ((name.includes('wheel') || name.includes('tire')) && !mappedParts.wheels) {
+            mappedParts.wheels = obj;
+          } else if ((name.includes('chassis') || name.includes('frame')) && !mappedParts.chassis) {
+            mappedParts.chassis = obj;
           }
         });
 
         modelPartsRef.current = mappedParts;
-        initialPositionsRef.current = initPositions;
         botRoot.add(botModel);
       },
       undefined,
@@ -261,27 +252,27 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
       }
     );
 
-    // Animation & hotspot projection loop
+    // Continuous render loop + 2D hotspot projections
     let animId: number;
     const animate = () => {
       animId = requestAnimationFrame(animate);
       controls.update();
 
-      // Project 3D hotspot coordinates to 2D screen positions
       const newPositions: HotspotScreenPos[] = [];
       const tempVec = new THREE.Vector3();
+
+      const curWidth = stage?.clientWidth || container.clientWidth || 640;
+      const curHeight = stage?.clientHeight || container.clientHeight || 480;
 
       (Object.keys(SUBSYSTEMS_DATA) as SubsystemKey[]).forEach((key) => {
         const info = SUBSYSTEMS_DATA[key];
         const offset = info.hotspotOffset;
-        const explode = info.explodeVector;
-        const currentExplode = explodeFactor;
+        const part = modelPartsRef.current[key];
 
-        tempVec.set(
-          offset[0] + explode[0] * currentExplode,
-          offset[1] + explode[1] * currentExplode,
-          offset[2] + explode[2] * currentExplode
-        );
+        tempVec.set(offset[0], offset[1], offset[2]);
+        if (part) {
+          tempVec.add(part.position);
+        }
 
         if (botGroupRef.current) {
           tempVec.applyMatrix4(botGroupRef.current.matrixWorld);
@@ -289,11 +280,18 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
 
         tempVec.project(camera);
 
-        const isVisible = tempVec.z < 1;
-        const halfWidth = width / 2;
-        const halfHeight = height / 2;
+        const halfWidth = curWidth / 2;
+        const halfHeight = curHeight / 2;
         const screenX = tempVec.x * halfWidth + halfWidth;
         const screenY = -(tempVec.y * halfHeight) + halfHeight;
+        const isVisible =
+          tempVec.z < 1 &&
+          isFinite(screenX) &&
+          isFinite(screenY) &&
+          screenX > 25 &&
+          screenX < curWidth - 25 &&
+          screenY > 25 &&
+          screenY < curHeight - 25;
 
         newPositions.push({
           key,
@@ -308,19 +306,25 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
     };
     animate();
 
-    const handleResize = () => {
-      if (!container || !camera || !renderer) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    };
-    window.addEventListener('resize', handleResize);
+    // ResizeObserver for rock-solid reactive canvas sizing
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        const h = entry.contentRect.height;
+        if (w > 20 && h > 20) {
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h, false);
+        }
+      }
+    });
+
+    if (stage) resizeObserver.observe(stage);
+    else resizeObserver.observe(container);
 
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       renderer.dispose();
       container.innerHTML = '';
     };
@@ -329,33 +333,28 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
   // 2. Handle Explode View Factor dynamically
   useEffect(() => {
     const parts = modelPartsRef.current;
-    const initialPos = initialPositionsRef.current;
+    if (!parts) return;
 
-    (Object.keys(SUBSYSTEMS_DATA) as SubsystemKey[]).forEach((key) => {
-      const part = parts[key];
-      const orig = initialPos[key];
-      const vec = SUBSYSTEMS_DATA[key].explodeVector;
+    const explode = explodeFactor;
 
-      if (!part || !orig) return;
-
-      const factor = explodeFactor;
-      part.position.set(
-        orig.x + vec[0] * factor,
-        orig.y + vec[1] * factor,
-        orig.z + vec[2] * factor
-      );
-    });
-  }, [explodeFactor, activeSubsystem]);
+    if (parts.l298n) parts.l298n.position.set(0, 1.15 * explode, 0.70 * explode);
+    if (parts.battery) parts.battery.position.set(0, 1.45 * explode, 0);
+    if (parts.esp32) parts.esp32.position.set(0, 1.20 * explode, -0.85 * explode);
+    if (parts.wires) parts.wires.position.set(0, 2.10 * explode, 0);
+    if (parts.motors) parts.motors.position.set(0, -0.80 * explode, 0);
+    if (parts.chassis) parts.chassis.position.set(0, -0.45 * explode, 0);
+    if (parts.wheels) parts.wheels.position.set(0, -0.30 * explode, 0);
+  }, [explodeFactor]);
 
   const handleSetView = (mode: '3d' | 'top' | 'side') => {
     setViewMode(mode);
     if (!cameraRef.current || !controlsRef.current) return;
     if (mode === '3d') {
-      cameraRef.current.position.set(3.0, 2.0, 3.0);
+      cameraRef.current.position.set(4.2, 3.0, 4.0);
     } else if (mode === 'top') {
-      cameraRef.current.position.set(0, 4.2, 0.001);
+      cameraRef.current.position.set(0, 5.2, 0.001);
     } else if (mode === 'side') {
-      cameraRef.current.position.set(4.2, 0.4, 0);
+      cameraRef.current.position.set(5.2, 0.5, 0);
     }
     controlsRef.current.target.set(0, 0, 0);
     controlsRef.current.update();
@@ -378,8 +377,14 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
   return (
     <div
       ref={stageRef}
-      className="relative w-full rounded-3xl bg-[#141210] border border-[#2a221b] overflow-hidden shadow-2xl aspect-4/3 min-h-[460px] flex items-center justify-center select-none"
+      className="relative w-full rounded-3xl bg-[#141210] border border-[#2a221b] overflow-hidden shadow-2xl aspect-4/3 min-h-[460px] select-none"
     >
+      {/* 3D WebGL Canvas Layer - Fills entire container */}
+      <div
+        ref={mountRef}
+        className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"
+      />
+
       {/* Top Floating Overlay: Segmented View Selector + Fullscreen */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
         {/* Left Segmented Pill */}
@@ -435,9 +440,6 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
         </button>
       </div>
 
-      {/* 3D WebGL Canvas */}
-      <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
-
       {/* Loading Spinner */}
       {isLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#141210]/80 backdrop-blur-sm z-20">
@@ -446,7 +448,7 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
         </div>
       )}
 
-      {/* Minimal Concentric Orange Hotspot Dots (No bulky buttons, zero text on top of the model) */}
+      {/* Minimal Concentric Orange Hotspot Dots */}
       <div className="absolute inset-0 pointer-events-none z-10">
         {hotspotPositions.map(({ key, x, y, visible }) => {
           if (!visible) return null;
@@ -467,9 +469,7 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
               onMouseLeave={() => setHoveredHotspot(null)}
               title={SUBSYSTEMS_DATA[key].name}
             >
-              {/* Concentric Orange Ring with White Center Dot matching Image 4 */}
               <div className="relative flex items-center justify-center">
-                {/* Subtle pulse when selected/hovered */}
                 {(isSelected || isHovered) && (
                   <span className="absolute w-7 h-7 rounded-full bg-[#ea580c]/30 animate-ping pointer-events-none" />
                 )}
@@ -494,7 +494,7 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
         })}
       </div>
 
-      {/* Bottom Floating Overlay: Explode view slider + percentage + reset matching Image 4 */}
+      {/* Bottom Floating Overlay: Explode view slider + percentage + reset */}
       <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#1c1611]/90 backdrop-blur-md border border-[#332820] shadow-lg">
         <div className="flex items-center gap-2 text-stone-300 shrink-0">
           <Layers className="w-4 h-4 text-stone-300" />
