@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserRole } from '../../types/auth';
-import { login } from '../../services/authService';
-import { Button } from '../../components/common/Button';
+import { loginUser } from '../../services/backendService';
 import { Anchor, Shield, Users, ArrowRight, Lock, Key } from 'lucide-react';
 
 interface LoginPageProps {
-  onLoginSuccess: (role: UserRole) => void;
+  onLoginSuccess: (role: 'participant' | 'admin') => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const [role, setRole] = useState<UserRole>('participant');
+  const [activeTab, setActiveTab] = useState<'participant' | 'admin'>('participant');
   const [accessCode, setAccessCode] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -21,13 +20,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setErrorMessage(null);
     try {
       setIsLoading(true);
-      const res = await login({ accessCode: accessCode || (role === 'admin' ? 'admin123' : 'team-01'), role });
+      const res = await loginUser(activeTab, {
+        accessCode: accessCode || (activeTab === 'admin' ? 'admin123' : 'team-01'),
+        password,
+      });
+
       localStorage.setItem('robothon_auth_token', res.token);
-      localStorage.setItem('robothon_user_role', role);
-      onLoginSuccess(role);
-      navigate(role === 'admin' ? '/admin' : '/participant');
+      localStorage.setItem('robothon_user_role', activeTab);
+      onLoginSuccess(activeTab);
+      navigate(activeTab === 'admin' ? '/admin-dashboard' : '/team-dashboard');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Login failed. Please check your credentials.');
+      setErrorMessage(err.message || 'Login failed. Please check credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -35,56 +38,54 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute -top-24 -left-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        {/* Brand Emblem */}
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
+        {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-400 p-0.5 shadow-xl shadow-cyan-500/20 mb-3">
-            <div className="w-full h-full bg-[#070d1e] rounded-[14px] flex items-center justify-center">
-              <Anchor className="w-7 h-7 text-cyan-400" />
-            </div>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600 text-white mb-3 shadow-md">
+            <Anchor className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-extrabold text-white">Robothon 3.O</h2>
-          <p className="text-xs text-slate-400 mt-1">Autonomous & RC Boat-Building Competition</p>
+          <h2 className="text-2xl font-bold text-white">Robothon 3.O</h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Boat-Building & Live Scoring Platform
+          </p>
         </div>
 
-        {/* Role Toggle Switch */}
-        <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-950/80 border border-slate-800 mb-6">
+        {/* Tab Toggle: Participant vs Admin */}
+        <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-950 border border-slate-800 mb-6">
           <button
             type="button"
             onClick={() => {
-              setRole('participant');
+              setActiveTab('participant');
               setAccessCode('');
+              setPassword('');
               setErrorMessage(null);
             }}
-            className={`py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-              role === 'participant'
-                ? 'bg-blue-600 text-white shadow-md'
+            className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              activeTab === 'participant'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            Participant Team
+            Participant Login
           </button>
 
           <button
             type="button"
             onClick={() => {
-              setRole('admin');
+              setActiveTab('admin');
               setAccessCode('');
+              setPassword('');
               setErrorMessage(null);
             }}
-            className={`py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-              role === 'admin'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
+            className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              activeTab === 'admin'
+                ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            Tech Admin
+            Tech Team Admin
           </button>
         </div>
 
@@ -94,48 +95,66 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
+        {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-              {role === 'participant' ? 'Team Access Code' : 'Admin Security Passcode'}
+            <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5">
+              {activeTab === 'participant' ? 'Team ID / Access Code' : 'Admin ID'}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                {role === 'participant' ? <Key className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                <Key className="w-4 h-4" />
               </div>
               <input
-                type={role === 'admin' ? 'password' : 'text'}
+                type="text"
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
-                placeholder={role === 'participant' ? 'e.g. team-01 (or leave blank for demo)' : 'admin123'}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                placeholder={activeTab === 'participant' ? 'e.g. team-01 (or leave blank for demo)' : 'admin123'}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
-              {role === 'participant'
-                ? 'Tip: Leave blank to preview as Team "AquaPulse Robotics".'
+              {activeTab === 'participant'
+                ? 'Tip: Leave blank to log in as default team "AquaPulse Robotics".'
                 : 'Tip: Use passcode "admin123" for admin access.'}
             </p>
           </div>
 
-          <Button
+          <div>
+            <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5">
+              Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <Lock className="w-4 h-4" />
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <button
             type="submit"
-            variant="primary"
-            size="lg"
-            className="w-full mt-2"
-            isLoading={isLoading}
+            disabled={isLoading}
+            className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50"
           >
-            Enter {role === 'participant' ? 'Participant Portal' : 'Admin Portal'}
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Button>
+            {isLoading ? 'Verifying...' : `Enter ${activeTab === 'participant' ? 'Participant Portal' : 'Admin Portal'}`}
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </form>
 
-        <div className="mt-6 pt-4 border-t border-slate-800/80 text-center">
+        <div className="mt-6 pt-4 border-t border-slate-800 text-center">
           <button
+            type="button"
             onClick={() => navigate('/leaderboard')}
             className="text-xs text-amber-400 hover:text-amber-300 font-semibold"
           >
-            View Live Leaderboard without logging in →
+            View Live Public Leaderboard →
           </button>
         </div>
       </div>

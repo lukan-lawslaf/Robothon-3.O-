@@ -1,150 +1,190 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Anchor, Trophy, CheckSquare, HelpCircle, Shield, LogOut } from 'lucide-react';
-import { UserRole } from '../../types/auth';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { resetStoreToDefaults } from '../../services/stateStore';
+import {
+  Trophy,
+  Users,
+  ShieldCheck,
+  ChevronDown,
+  RotateCcw,
+  LogOut,
+  Anchor,
+} from 'lucide-react';
 
 interface NavbarProps {
-  currentRole?: UserRole;
+  currentRole: 'participant' | 'admin' | 'public';
+  setCurrentRole: (role: 'participant' | 'admin' | 'public') => void;
   teamName?: string;
-  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  currentRole = 'participant',
+  currentRole,
+  setCurrentRole,
   teamName = 'AquaPulse Robotics',
-  onLogout,
 }) => {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();
   const location = useLocation();
 
-  const isActive = (path: string) => location.pathname === path;
+  const handleRoleSelect = (role: 'participant' | 'admin' | 'public') => {
+    setCurrentRole(role);
+    setDropdownOpen(false);
+    if (role === 'participant') {
+      navigate('/team-dashboard');
+    } else if (role === 'admin') {
+      navigate('/admin-dashboard');
+    } else {
+      navigate('/leaderboard');
+    }
+  };
+
+  const handleReset = () => {
+    if (window.confirm('Reset all demo data (teams, checkpoints, tickets) to default?')) {
+      resetStoreToDefaults();
+      window.location.reload();
+    }
+  };
+
+  const isCurrent = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 z-40 w-full bg-[#070d1e]/90 backdrop-blur-md border-b border-slate-800">
+    <nav className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-400 p-0.5 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-shadow">
-              <div className="w-full h-full bg-[#070d1e] rounded-[10px] flex items-center justify-center">
-                <Anchor className="w-5 h-5 text-cyan-400" />
-              </div>
+          {/* Logo & Platform Name */}
+          <Link to="/leaderboard" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+              <Anchor className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold tracking-tight text-white text-lg">ROBOTHON</span>
-                <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                <span className="font-bold text-white tracking-tight text-base sm:text-lg">
+                  ROBOTHON
+                </span>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
                   3.O
                 </span>
               </div>
-              <p className="text-[10px] font-medium tracking-wide text-slate-400 uppercase">
-                Boat Building & Scoring
+              <p className="text-[10px] text-slate-400 hidden sm:block">
+                Event Management & Live Scoring
               </p>
             </div>
           </Link>
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-1">
-            {currentRole === 'participant' ? (
-              <>
-                <Link
-                  to="/participant"
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/participant')
-                      ? 'bg-blue-600/20 text-cyan-400 border border-blue-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  to="/participant/checkpoints"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/participant/checkpoints')
-                      ? 'bg-blue-600/20 text-cyan-400 border border-blue-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <CheckSquare className="w-4 h-4" />
-                  Checkpoints
-                </Link>
-                <Link
-                  to="/participant/quiz"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/participant/quiz')
-                      ? 'bg-blue-600/20 text-cyan-400 border border-blue-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <HelpCircle className="w-4 h-4" />
-                  Quizzes
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/admin"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/admin')
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Shield className="w-4 h-4" />
-                  Admin Overview
-                </Link>
-                <Link
-                  to="/admin/tickets"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/admin/tickets')
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  Review Queue
-                </Link>
-                <Link
-                  to="/admin/minigames"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive('/admin/minigames')
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  Mini-Game Points
-                </Link>
-              </>
-            )}
-
-            {/* Public Live Leaderboard */}
             <Link
               to="/leaderboard"
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                isActive('/leaderboard')
-                  ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/10 text-amber-300 border border-amber-500/40'
-                  : 'text-amber-400/90 hover:text-amber-300 hover:bg-amber-500/10'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isCurrent('/leaderboard')
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
               <Trophy className="w-4 h-4 text-amber-400" />
               Live Leaderboard
             </Link>
+
+            <Link
+              to="/team-dashboard"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isCurrent('/team-dashboard')
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Users className="w-4 h-4 text-cyan-400" />
+              Participant Portal
+            </Link>
+
+            <Link
+              to="/admin-dashboard"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isCurrent('/admin-dashboard')
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4 text-amber-400" />
+              Admin Portal
+            </Link>
           </div>
 
-          {/* User profile / Logout */}
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-semibold text-white">{teamName}</p>
-              <p className="text-[10px] text-cyan-400 capitalize">{currentRole} Mode</p>
+          {/* Right Action Bar: Dev Role Switcher & Reset */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Dev Role Switcher Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 hover:bg-slate-700 transition-colors shadow-sm"
+              >
+                <span className="text-[10px] uppercase font-bold text-slate-400">Role:</span>
+                <span className="font-semibold text-white capitalize">
+                  {currentRole === 'participant' ? 'Participant' : currentRole === 'admin' ? 'Tech Admin' : 'Public'}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl py-1.5 z-50">
+                  <div className="px-3 py-1.5 border-b border-slate-700/80 text-[10px] uppercase font-bold text-slate-400">
+                    Quick Dev Role Switcher
+                  </div>
+
+                  <button
+                    onClick={() => handleRoleSelect('public')}
+                    className="w-full text-left px-3.5 py-2 text-xs text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                      Public Leaderboard
+                    </span>
+                    {currentRole === 'public' && <span className="text-blue-400 font-bold">✓</span>}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleSelect('participant')}
+                    className="w-full text-left px-3.5 py-2 text-xs text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-cyan-400" />
+                      Participant (AquaPulse)
+                    </span>
+                    {currentRole === 'participant' && <span className="text-blue-400 font-bold">✓</span>}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleSelect('admin')}
+                    className="w-full text-left px-3.5 py-2 text-xs text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                      Tech Team Admin
+                    </span>
+                    {currentRole === 'admin' && <span className="text-blue-400 font-bold">✓</span>}
+                  </button>
+                </div>
+              )}
             </div>
 
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                title="Logout"
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            )}
+            {/* Reset Data Helper */}
+            <button
+              onClick={handleReset}
+              title="Reset state to initial mock data"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+
+            {/* Login / Switch Button */}
+            <Link
+              to="/login"
+              title="Go to Dual Login"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </div>

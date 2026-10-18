@@ -1,111 +1,55 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { UserRole } from '../types/auth';
 
-// Public Pages
+// Public Views
 import { LoginPage } from '../pages/public/LoginPage';
 import { LiveLeaderboardPage } from '../pages/public/LiveLeaderboardPage';
 
-// Participant Pages
+// Participant Views
 import { ParticipantDashboard } from '../pages/participant/Dashboard';
-import { CheckpointsPage } from '../pages/participant/CheckpointsPage';
-import { QuizPage } from '../pages/participant/QuizPage';
 
-// Admin Pages
+// Admin Views
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
-import { TicketQueuePage } from '../pages/admin/TicketQueuePage';
-import { MiniGamesPage } from '../pages/admin/MiniGamesPage';
 
 interface AppRoutesProps {
-  currentRole: UserRole;
-  onLoginSuccess: (role: UserRole) => void;
+  currentRole: 'participant' | 'admin' | 'public';
+  setCurrentRole: (role: 'participant' | 'admin' | 'public') => void;
 }
 
-export const AppRoutes: React.FC<AppRoutesProps> = ({ currentRole, onLoginSuccess }) => {
+export const AppRoutes: React.FC<AppRoutesProps> = ({ currentRole, setCurrentRole }) => {
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<LoginPage onLoginSuccess={onLoginSuccess} />} />
+      {/* 1. Dual Login Screen */}
+      <Route
+        path="/login"
+        element={<LoginPage onLoginSuccess={(role) => setCurrentRole(role)} />}
+      />
+
+      {/* 2. Live Leaderboard Page */}
       <Route path="/leaderboard" element={<LiveLeaderboardPage />} />
 
-      {/* Participant Routes */}
-      <Route
-        path="/participant"
-        element={
-          currentRole === 'participant' ? (
-            <ParticipantDashboard />
-          ) : (
-            <Navigate to="/admin" replace />
-          )
-        }
-      />
-      <Route
-        path="/participant/checkpoints"
-        element={
-          currentRole === 'participant' ? (
-            <CheckpointsPage />
-          ) : (
-            <Navigate to="/admin" replace />
-          )
-        }
-      />
-      <Route
-        path="/participant/quiz"
-        element={
-          currentRole === 'participant' ? (
-            <QuizPage />
-          ) : (
-            <Navigate to="/admin" replace />
-          )
-        }
-      />
+      {/* 3. Participant Dashboard */}
+      <Route path="/team-dashboard" element={<ParticipantDashboard />} />
 
-      {/* Admin Routes */}
-      <Route
-        path="/admin"
-        element={
-          currentRole === 'admin' ? (
-            <AdminDashboard />
-          ) : (
-            <Navigate to="/participant" replace />
-          )
-        }
-      />
-      <Route
-        path="/admin/tickets"
-        element={
-          currentRole === 'admin' ? (
-            <TicketQueuePage />
-          ) : (
-            <Navigate to="/participant" replace />
-          )
-        }
-      />
-      <Route
-        path="/admin/minigames"
-        element={
-          currentRole === 'admin' ? (
-            <MiniGamesPage />
-          ) : (
-            <Navigate to="/participant" replace />
-          )
-        }
-      />
+      {/* 4. Tech Team Admin Portal */}
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
-      {/* Default route redirect */}
+      {/* Default Redirection */}
       <Route
         path="/"
         element={
           currentRole === 'admin' ? (
-            <Navigate to="/admin" replace />
+            <Navigate to="/admin-dashboard" replace />
+          ) : currentRole === 'participant' ? (
+            <Navigate to="/team-dashboard" replace />
           ) : (
-            <Navigate to="/participant" replace />
+            <Navigate to="/leaderboard" replace />
           )
         }
       />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/leaderboard" replace />} />
     </Routes>
   );
 };

@@ -3,60 +3,104 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Robothon 3.0 — Interactive 3D Bot & Exploded View</title>
+  <title>Robothon 3.0 — High-Detail 3D Bot & Exploded View</title>
   <style>
     :root {
-      --bg: #0b0f19;
-      --panel: rgba(17, 24, 39, 0.88);
+      --bg: #070b14;
+      --panel: rgba(15, 23, 42, 0.92);
       --accent: #f59e0b;
-      --text: #f3f4f6;
-      --muted: #9ca3af;
+      --accent-glow: rgba(245, 158, 11, 0.35);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.12);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; width: 100vw; }
-    #canvas-container { width: 100%; height: 100%; }
+    #canvas-container { width: 100%; height: 100%; position: absolute; inset: 0; }
 
     .hud {
-      position: absolute; top: 20px; left: 20px; width: 340px;
-      background: var(--panel); backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.12); border-radius: 16px;
-      padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      position: absolute; top: 20px; left: 20px; width: 360px;
+      max-height: calc(100vh - 40px); overflow-y: auto;
+      background: var(--panel); backdrop-filter: blur(16px);
+      border: 1px solid var(--border); border-radius: 18px;
+      padding: 20px; box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7), 0 0 20px var(--accent-glow);
       z-index: 10;
     }
-    .hud h1 { font-size: 1.25rem; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-    .hud p.sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
+    .hud::-webkit-scrollbar { width: 5px; }
+    .hud::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
-    .control-group { margin-bottom: 16px; }
-    .control-header { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; font-weight: 600; }
+    .badge {
+      display: inline-block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em;
+      text-transform: uppercase; background: rgba(245, 158, 11, 0.2); color: var(--accent);
+      padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(245, 158, 11, 0.4);
+      margin-bottom: 8px;
+    }
+    .hud h1 { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 4px; letter-spacing: -0.02em; }
+    .hud p.sub { font-size: 0.80rem; color: var(--muted); margin-bottom: 14px; line-height: 1.4; }
+
+    .control-group { margin-bottom: 14px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+    .control-header { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 8px; font-weight: 600; }
+    .control-header span.val { color: var(--accent); font-family: monospace; font-size: 0.9rem; }
     input[type="range"] {
-      width: 100%; accent-color: var(--accent); cursor: pointer;
+      width: 100%; accent-color: var(--accent); cursor: pointer; height: 6px; border-radius: 3px;
     }
 
-    .btn-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
     button {
-      flex: 1; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.06); color: var(--text); font-weight: 600; font-size: 0.82rem;
-      cursor: pointer; transition: all 0.2s;
+      flex: 1; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06); color: var(--text); font-weight: 600; font-size: 0.80rem;
+      cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
-    button:hover { background: rgba(245, 158, 11, 0.2); border-color: var(--accent); }
-    button.primary { background: var(--accent); color: #000; border-color: var(--accent); }
-    button.primary:hover { background: #fbbf24; }
+    button:hover { background: rgba(245, 158, 11, 0.2); border-color: var(--accent); transform: translateY(-1px); }
+    button.primary { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; border-color: #f59e0b; font-weight: 700; }
+    button.primary:hover { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4); }
+    button.download { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa; }
+    button.download:hover { background: rgba(59, 130, 246, 0.3); border-color: #3b82f6; }
+    button.file-btn { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; }
+    button.file-btn:hover { background: rgba(16, 185, 129, 0.3); border-color: #10b981; }
 
-    .parts-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+    .section-title { font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 12px 0 6px 0; font-weight: 700; }
+    .parts-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .part-chip {
-      padding: 7px 10px; border-radius: 6px; font-size: 0.78rem;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      padding: 8px 10px; border-radius: 8px; font-size: 0.76rem;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.2s;
     }
-    .part-chip:hover, .part-chip.active { border-color: var(--accent); background: rgba(245, 158, 11, 0.15); }
-    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .part-chip:hover, .part-chip.active { border-color: var(--accent); background: rgba(245, 158, 11, 0.18); color: #fff; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
     #info-card {
-      margin-top: 14px; padding: 12px; border-radius: 8px;
-      background: rgba(0,0,0,0.35); border-left: 3px solid var(--accent);
-      font-size: 0.8rem; line-height: 1.4;
+      margin-top: 12px; padding: 12px; border-radius: 10px;
+      background: rgba(0,0,0,0.5); border-left: 3px solid var(--accent);
+      font-size: 0.80rem; line-height: 1.45;
     }
-    #info-card strong { color: var(--accent); display: block; margin-bottom: 2px; }
+    #info-card strong { color: var(--accent); display: block; margin-bottom: 4px; font-size: 0.86rem; }
+    #info-card .specs { margin-top: 8px; font-family: monospace; font-size: 0.70rem; color: #cbd5e1; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 6px; }
+
+    #drop-overlay {
+      position: absolute; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+      border: 3px dashed var(--accent);
+    }
+    #drop-overlay.active { opacity: 1; pointer-events: auto; }
+    #drop-overlay h2 { font-size: 1.8rem; color: var(--accent); margin-bottom: 8px; }
+    #drop-overlay p { color: var(--muted); font-size: 0.95rem; }
+
+    #status-pill {
+      position: absolute; bottom: 20px; right: 20px;
+      background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(10px);
+      padding: 9px 18px; border-radius: 30px; font-size: 0.78rem;
+      border: 1px solid rgba(255,255,255,0.12); color: #e2e8f0;
+      display: flex; align-items: center; gap: 8px; z-index: 10;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #10b981;
+      box-shadow: 0 0 10px #10b981; animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.6; } }
   </style>
 
   <script type="importmap">
@@ -70,13 +114,14 @@
 </head>
 <body>
   <div class="hud">
-    <h1>ROBOTHON 3.0 BOT</h1>
-    <p class="sub">Interactive 4WD Exploded View & GLB Generator</p>
+    <span class="badge">Robothon 3.0 Platform</span>
+    <h1>4WD EXPLORER BOT</h1>
+    <p class="sub">High-Detail CAD Assembly with Authentic ESP32 & L298N Modules, 4WD High-Grip Drive, & Exploded View.</p>
 
     <div class="control-group">
       <div class="control-header">
-        <span>Explode View</span>
-        <span id="explode-val">0%</span>
+        <span>Exploded Subsystem View</span>
+        <span class="val" id="explode-val">0%</span>
       </div>
       <input type="range" id="explode-slider" min="0" max="100" value="0" />
     </div>
@@ -87,16 +132,29 @@
     </div>
 
     <div class="btn-row">
-      <button id="export-glb-btn">Download .GLB Model</button>
+      <button id="export-glb-btn" class="download">Download .GLB Model</button>
+      <button id="open-file-btn" class="file-btn">Open Custom .GLB</button>
+      <input type="file" id="file-input" accept=".glb,.gltf" style="display:none;" />
     </div>
 
-    <div class="control-header"><span>Inspect Component</span></div>
+    <div class="section-title">Inspect Subsystem</div>
     <div class="parts-list" id="parts-container"></div>
 
     <div id="info-card">
       <strong id="info-title">Full Robothon 3.0 Assembly</strong>
-      <span id="info-desc">Drag to rotate, scroll to zoom, or use the slider to explode the 7 core subsystems.</span>
+      <span id="info-desc">Drag to rotate, scroll to zoom, or use the explode slider to separate and inspect all 7 core subsystems.</span>
+      <div class="specs" id="info-specs">Nodes: 480+ | Weight: 1.85 kg | Power: 11.1V 3S Li-Ion</div>
     </div>
+  </div>
+
+  <div id="status-pill">
+    <span class="pulse-dot"></span>
+    <span id="status-text">Interactive 3D Assembly Ready</span>
+  </div>
+
+  <div id="drop-overlay">
+    <h2>Drop .GLB Model Here</h2>
+    <p>Release to load into the 3D inspection viewer</p>
   </div>
 
   <div id="canvas-container"></div>
@@ -109,34 +167,43 @@
 
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0b0f19);
+    scene.background = new THREE.Color(0x070b14);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(3.8, 2.8, 4.2);
+    camera.position.set(4.5, 3.2, 4.2);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.target.set(0, 0.2, 0);
+    controls.dampingFactor = 0.05;
+    controls.target.set(0.25, 0.05, 0);
 
-    // Lighting
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    dirLight.position.set(5, 8, 5);
-    dirLight.castShadow = true;
-    scene.add(dirLight);
+    // Studio Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
-    rimLight.position.set(-5, 3, -4);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    keyLight.position.set(5, 9, 6);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.3);
+    rimLight.position.set(-6, 4, -5);
     scene.add(rimLight);
 
+    const fillLight = new THREE.DirectionalLight(0xf59e0b, 0.6);
+    fillLight.position.set(0, -3, 0);
+    scene.add(fillLight);
+
+    // Grid Floor
     const grid = new THREE.GridHelper(10, 20, 0x334155, 0x1e293b);
-    grid.position.y = -0.55;
+    grid.position.y = -0.58;
     scene.add(grid);
 
     // Root Bot Group
@@ -144,56 +211,63 @@
     botRoot.name = "Robothon_3_Bot";
     scene.add(botRoot);
 
-    // Subsystem metadata + explode vectors
+    // Subsystem Definitions with Explode Offsets
     const subsystems = {
       chassis: {
-        name: "Chassis",
-        color: "#eab308",
-        desc: "Bent sheet-metal U-channel base plate with side motor flanges and optional yellow aero deck.",
+        name: "Chassis & Deck",
+        color: "#f59e0b",
+        desc: "Bent aluminum U-channel chassis plate with front bullbar, side motor mount flanges, competition yellow aero top deck, power switch, and 4-LED fuel gauge.",
+        specs: "Material: 6061-T6 Alum + ABS Deck | Dim: 140x220mm | Screws: M3 Hex Socket",
         group: new THREE.Group(),
-        explodeOffset: new THREE.Vector3(0, -0.35, 0)
+        explodeOffset: new THREE.Vector3(0, -0.45, 0)
       },
       wheels: {
         name: "Wheels (x4)",
         color: "#f8fafc",
-        desc: "6-hole deep-dish white rims with wide high-grip black chevron rubber tyres.",
+        desc: "Deep-dish competition white rims with 6 cutout spokes, beadlock rivets, M4 locknuts, and high-traction 20-lug chevron rubber tires with branded sidewall lettering.",
+        specs: "Diameter: 65mm | Tread: Aggressive Chevron 20-Lug | Hex Hub: 12mm Standard",
         group: new THREE.Group(),
-        explodeOffset: new THREE.Vector3(0, 0, 0) // handled per wheel
+        explodeOffset: new THREE.Vector3(0, 0, 0)
       },
       motors: {
         name: "DC Motors (x4)",
         color: "#94a3b8",
-        desc: "12V 300 RPM cylindrical side-shaft geared DC motors with metal hex couplings.",
+        desc: "12V 300 RPM GA25 metal geared DC motors with printed motor labels, metal planetary gearboxes, precision brass 12mm hex couplers, and solder terminal capacitors.",
+        specs: "Voltage: 12V DC | Speed: 300 RPM | Torque: 15 kg.cm | Shaft: 4mm D-cut",
         group: new THREE.Group(),
-        explodeOffset: new THREE.Vector3(0, -0.8, 0) // plus lateral per motor
+        explodeOffset: new THREE.Vector3(0, -0.80, 0)
       },
       l298n: {
         name: "L298N Driver",
         color: "#ef4444",
-        desc: "Dual H-Bridge motor driver PCB with black anodized heatsink and blue screw terminals.",
+        desc: "L298N Dual H-Bridge motor driver with multi-fin black anodized heatsink, 3 blue screw terminals, 5V regulator, capacitors, diodes, logic headers, and elevated brass standoffs.",
+        specs: "Peak Current: 2A per channel | Logic: 5V TTL | Heat Dissipation: Aluminum Fin",
         group: new THREE.Group(),
-        explodeOffset: new THREE.Vector3(0, 0.95, 0.65)
+        explodeOffset: new THREE.Vector3(0, 1.15, 0.70)
       },
       battery: {
-        name: "Battery Pack",
-        color: "#cbd5e1",
-        desc: "11.1V 3S Li-Ion/LiPo battery pack wrapped in protective silver duct tape with DC barrel lead.",
+        name: "3S Battery Pack",
+        color: "#0284c7",
+        desc: "11.1V 3S Li-Ion 2200mAh pack with authentic printed spec label, yellow XT60 high-current connector with gold pins, 4-pin JST-XH balance lead, and woven Velcro strap.",
+        specs: "Cells: 3S1P 18650 Li-Ion | Capacity: 2200mAh (24.4Wh) | Connector: XT60 + JST-XH",
         group: new THREE.Group(),
-        explodeOffset: new THREE.Vector3(0, 1.35, 0)
+        explodeOffset: new THREE.Vector3(0, 1.45, 0)
       },
       esp32: {
         name: "ESP32-WROOM",
         color: "#3b82f6",
-        desc: "30-pin ESP32-WROOM-32 Wi-Fi/BLE microcontroller mounted on a mini breadboard.",
+        desc: "ESP32-WROOM-32 Wi-Fi / BLE microcontroller with metal RF shield, USB-UART bridge, antenna trace, and dual 15-pin headers mounted on a mini proto-board.",
+        specs: "CPU: Dual Tensilica 240MHz | Wireless: Wi-Fi 802.11 b/g/n + BLE 4.2 | GPIO: 30-pin",
         group: new THREE.Group(),
-        explodeOffset: new THREE.Vector3(0, 1.05, -0.75)
+        explodeOffset: new THREE.Vector3(0, 1.20, -0.85)
       },
       wires: {
-        name: "Wires & Harness",
+        name: "Wiring Harness",
         color: "#22c55e",
-        desc: "Silicone power leads (12V/GND), motor phase wires, and Dupont logic jumpers.",
+        desc: "Color-coded Dupont logic ribbon jumpers with molded black connector plugs, thick 14AWG silicone 12V power leads, twisted pair motor wiring, and chassis rubber grommets.",
+        specs: "Logic: 28AWG Dupont Ribbon | Power: 14AWG Silicone | Grommets: Rubber Anti-Chafe",
         group: new THREE.Group(),
-        explodeOffset: new THREE.Vector3(0, 1.85, 0)
+        explodeOffset: new THREE.Vector3(0, 2.10, 0)
       }
     };
 
@@ -202,209 +276,590 @@
       botRoot.add(sub.group);
     });
 
-    // Materials
-    const matBlackMetal = new THREE.MeshStandardMaterial({ color: 0x1e242b, metalness: 0.6, roughness: 0.4 });
-    const matYellowDeck = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5, metalness: 0.1 });
-    const matSilver = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.85, roughness: 0.25 });
-    const matWhiteRim = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 });
-    const matTire = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.85 });
-    const matRedPCB = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.35 });
-    const matBlueTerm = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.4 });
-    const matDarkPCB = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.3 });
-    const matDuctTape = new THREE.MeshStandardMaterial({ color: 0x9ca3af, metalness: 0.45, roughness: 0.35 });
-
-    // 1. CHASSIS (Bent metal U-channel + yellow top trim from Robothon photos)
-    const basePlate = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.04, 2.2), matBlackMetal);
-    subsystems.chassis.group.add(basePlate);
-
-    // Side downward flanges for motor mounts
-    [-0.68, 0.68].forEach(x => {
-      const flange = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 2.0), matBlackMetal);
-      flange.position.set(x, -0.16, 0);
-      subsystems.chassis.group.add(flange);
-    });
-
-    // Yellow top deck accent (like the yellow Robothon bots)
-    const topDeck = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.02, 2.16), matYellowDeck);
-    topDeck.position.y = 0.03;
-    subsystems.chassis.group.add(topDeck);
-
-    // 2 & 3. WHEELS & DC MOTORS (4WD)
-    const wheelPositions = [
-      { x: -0.95, z:  0.68, side: -1, name: "FL" },
-      { x:  0.95, z:  0.68, side:  1, name: "FR" },
-      { x: -0.95, z: -0.68, side: -1, name: "RL" },
-      { x:  0.95, z: -0.68, side:  1, name: "RR" }
-    ];
-
     const individualWheels = [];
     const individualMotors = [];
 
+    // Helper: Canvas Textures
+    function createYellowDeckTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024; canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      // Noise
+      ctx.fillStyle = 'rgba(0,0,0,0.03)';
+      for (let i = 0; i < 4000; i++) {
+        ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 2, 2);
+      }
+
+      // Hazard chevrons on Left and Right borders
+      ctx.fillStyle = '#18181b';
+      for (let y = -100; y < 1124; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y); ctx.lineTo(70, y + 50); ctx.lineTo(70, y + 75); ctx.lineTo(0, y + 25);
+        ctx.closePath(); ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(1024, y); ctx.lineTo(954, y + 50); ctx.lineTo(954, y + 75); ctx.lineTo(1024, y + 25);
+        ctx.closePath(); ctx.fill();
+      }
+
+      ctx.strokeStyle = '#18181b'; ctx.lineWidth = 6;
+      ctx.strokeRect(70, 20, 884, 984);
+
+      // Front header banner
+      ctx.fillStyle = '#18181b';
+      ctx.fillRect(160, 50, 704, 70);
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 34px "Segoe UI", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲ FRONT // ROBOTHON 3.0 COMPETITION BOT ▲', 512, 98);
+
+      // Main Center Graphics
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 68px "Segoe UI", Arial, sans-serif';
+      ctx.fillText('ROBOTHON 3.0', 512, 450);
+
+      ctx.fillStyle = '#334155';
+      ctx.font = 'bold 24px "Segoe UI", Arial, sans-serif';
+      ctx.fillText('HIGH-TORQUE 4WD EXPLORATION & RESCUE PLATFORM', 512, 490);
+
+      ctx.fillStyle = '#b45309';
+      ctx.font = 'bold 20px "Courier New", monospace';
+      ctx.fillText('CHASSIS SPEC: CH-REV-3.2  |  WEIGHT: 1.85 KG  |  12V DC DUAL DRIVE', 512, 520);
+
+      // Subsystem zones
+      ctx.strokeStyle = '#b45309'; ctx.lineWidth = 3; ctx.setLineDash([8, 8]);
+      ctx.strokeRect(200, 140, 624, 220);
+      ctx.strokeRect(200, 560, 624, 160);
+      ctx.strokeRect(200, 740, 624, 220);
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#92400e'; ctx.font = 'bold 20px "Segoe UI", sans-serif';
+      ctx.fillText('[ ZONE A: L298N MOTOR CONTROLLER // DUAL H-BRIDGE ]', 512, 170);
+      ctx.fillText('[ ZONE B: 3S 11.1V 2200mAh Li-Ion POWER BAY ]', 512, 590);
+      ctx.fillText('[ ZONE C: ESP32-WROOM-32 Wi-Fi / BLE CONTROLLER ]', 512, 770);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.anisotropy = 8;
+      return tex;
+    }
+
+    function createBatteryLabelTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, 512, 256);
+      ctx.fillStyle = '#0284c7'; ctx.fillRect(10, 10, 492, 45);
+
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px Arial, sans-serif';
+      ctx.textAlign = 'center'; ctx.fillText('LITHIUM-ION RECHARGEABLE PACK', 256, 42);
+
+      ctx.fillStyle = '#f8fafc'; ctx.font = '900 36px Arial, sans-serif';
+      ctx.fillText('11.1V  2200mAh  24.4Wh', 256, 105);
+
+      ctx.font = 'bold 18px Arial, sans-serif'; ctx.fillStyle = '#38bdf8';
+      ctx.fillText('CONFIGURATION: 3S1P  |  DISCHARGE RATE: 30C PEAK', 256, 135);
+
+      ctx.fillStyle = '#eab308'; ctx.fillRect(30, 160, 452, 28);
+      ctx.fillStyle = '#000000'; ctx.font = 'bold 15px Arial, sans-serif';
+      ctx.fillText('⚠ CAUTION: USE COMPATIBLE 3S BALANCE CHARGER ONLY', 256, 180);
+
+      ctx.fillStyle = '#94a3b8'; ctx.font = '13px monospace';
+      ctx.fillText('CE  RoHS  [♻ Li-Ion 18650]  MADE FOR ROBOTHON 3.0', 256, 225);
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    function createTireSidewallTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#18181b'; ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = '#27272a'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.arc(256, 256, 220, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(256, 256, 175, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.save();
+      ctx.translate(256, 256);
+      ctx.fillStyle = '#71717a'; ctx.font = 'bold 20px Arial, sans-serif';
+      const text = "ROBOTHON ALL-TERRAIN ◆ 65mm GRIP MAX ◆ 4WD TRACTION ◆ ";
+      const angleStep = (Math.PI * 2) / text.length;
+      for (let i = 0; i < text.length; i++) {
+        ctx.save(); ctx.rotate(i * angleStep); ctx.fillText(text[i], 0, -195); ctx.restore();
+      }
+      ctx.restore();
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    function createBreadboardTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#f1f5f9'; ctx.fillRect(0, 0, 512, 256);
+      ctx.fillStyle = '#ef4444'; ctx.fillRect(15, 20, 482, 4); ctx.fillRect(15, 232, 482, 4);
+      ctx.fillStyle = '#3b82f6'; ctx.fillRect(15, 32, 482, 4); ctx.fillRect(15, 220, 482, 4);
+      ctx.fillStyle = '#cbd5e1'; ctx.fillRect(15, 122, 482, 12);
+
+      ctx.fillStyle = '#334155';
+      for (let x = 30; x < 482; x += 15) {
+        for (let y = 48; y <= 108; y += 15) ctx.fillRect(x, y, 6, 6);
+        for (let y = 145; y <= 205; y += 15) ctx.fillRect(x, y, 6, 6);
+      }
+      ctx.fillStyle = '#64748b'; ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('ROBOTHON MINI PROTO-BOARD', 256, 132);
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    function createMotorLabelTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#d1d5db'; ctx.fillRect(0, 0, 512, 128);
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+      for (let i = 0; i < 128; i += 3) ctx.fillRect(0, i, 512, 1);
+
+      ctx.fillStyle = '#0f172a'; ctx.font = '900 24px Arial, sans-serif';
+      ctx.fillText('ROBOTHON 12V DC MOTOR', 20, 42);
+      ctx.font = 'bold 18px Arial, sans-serif'; ctx.fillStyle = '#b91c1c';
+      ctx.fillText('300 RPM  |  15 kg.cm TORQUE', 20, 72);
+      ctx.font = '14px monospace'; ctx.fillStyle = '#334155';
+      ctx.fillText('MODEL: GA25-370-12300  •  CE / RoHS', 20, 102);
+
+      for (let x = 380; x < 490; x += 5) {
+        if (Math.random() > 0.3) {
+          ctx.fillStyle = '#000000'; ctx.fillRect(x, 25, Math.random() > 0.5 ? 3 : 2, 80);
+        }
+      }
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    // Material Library
+    const deckTexture = createYellowDeckTexture();
+    const batteryTexture = createBatteryLabelTexture();
+    const tireTexture = createTireSidewallTexture();
+    const breadboardTexture = createBreadboardTexture();
+    const motorTexture = createMotorLabelTexture();
+
+    const matChassisMetal = new THREE.MeshStandardMaterial({ color: 0x1e242b, metalness: 0.75, roughness: 0.35 });
+    const matYellowDeck = new THREE.MeshStandardMaterial({ map: deckTexture, roughness: 0.45, metalness: 0.15 });
+    const matTire = new THREE.MeshStandardMaterial({ color: 0x17171a, roughness: 0.92, metalness: 0.05 });
+    const matTireSidewall = new THREE.MeshStandardMaterial({ map: tireTexture, roughness: 0.88, metalness: 0.05 });
+    const matWhiteRim = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.25, metalness: 0.1 });
+    const matGoldHex = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.85, roughness: 0.25 });
+    const matSteel = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.88, roughness: 0.2 });
+    const matMotorCan = new THREE.MeshStandardMaterial({ map: motorTexture, metalness: 0.8, roughness: 0.28 });
+    const matBattery = new THREE.MeshStandardMaterial({ map: batteryTexture, roughness: 0.4, metalness: 0.2 });
+    const matBreadboard = new THREE.MeshStandardMaterial({ map: breadboardTexture, roughness: 0.35, metalness: 0.05 });
+    const matRedPCB = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.35, metalness: 0.1 });
+    const matBlueTerm = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.4, metalness: 0.1 });
+    const matDarkPCB = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.35, metalness: 0.2 });
+    const matXt60 = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.35, metalness: 0.1 });
+    const matStrap = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.9, metalness: 0.05 });
+    const matScrew = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.92, roughness: 0.15 });
+    const matBrassStandoff = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.3 });
+
+    function createScrewMesh() {
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.02, 16), matScrew));
+      g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.022, 6), matChassisMetal));
+      return g;
+    }
+
+    function createWire(subGroup, points, hexColor, radius = 0.012) {
+      const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
+      const geo = new THREE.TubeGeometry(curve, 32, radius, 8, false);
+      const mat = new THREE.MeshStandardMaterial({ color: hexColor, roughness: 0.45, metalness: 0.1 });
+      const wire = new THREE.Mesh(geo, mat);
+      subGroup.add(wire);
+      return wire;
+    }
+
+    // BUILD HIGH-DETAIL PROCEDURAL MODEL (Visible instantly with ZERO CORS dependencies!)
+    // 1. CHASSIS
+    const basePlate = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.04, 2.2), matChassisMetal);
+    subsystems.chassis.group.add(basePlate);
+
+    const bumper = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.08, 0.16), matChassisMetal);
+    bumper.position.set(0, 0.02, 1.15);
+    subsystems.chassis.group.add(bumper);
+
+    [-0.72, 0.72].forEach(x => {
+      const bg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.22), matTire);
+      bg.position.set(x, 0.02, 1.16);
+      subsystems.chassis.group.add(bg);
+    });
+
+    [-0.68, 0.68].forEach(x => {
+      const flange = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.34, 2.08), matChassisMetal);
+      flange.position.set(x, -0.17, 0);
+      subsystems.chassis.group.add(flange);
+    });
+
+    const rearBar = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.08), matChassisMetal);
+    rearBar.position.set(0, 0.02, -1.14);
+    subsystems.chassis.group.add(rearBar);
+
+    const topDeck = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.025, 2.16), matYellowDeck);
+    topDeck.position.y = 0.033;
+    subsystems.chassis.group.add(topDeck);
+
+    // Screws
+    [[-0.64, 0.05, 1.02], [0.64, 0.05, 1.02], [-0.64, 0.05, 0.0], [0.64, 0.05, 0.0], [-0.64, 0.05, -1.02], [0.64, 0.05, -1.02]].forEach(([sx, sy, sz]) => {
+      const sc = createScrewMesh(); sc.position.set(sx, sy, sz); subsystems.chassis.group.add(sc);
+    });
+
+    // Rocker switch
+    const switchBase = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.18), matChassisMetal);
+    switchBase.position.set(0.54, 0.06, -0.18);
+    subsystems.chassis.group.add(switchBase);
+
+    const switchRocker = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.04, 0.12), new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3, emissive: 0x7f1d1d, emissiveIntensity: 0.5 }));
+    switchRocker.position.set(0.54, 0.085, -0.18); switchRocker.rotation.x = 0.2;
+    subsystems.chassis.group.add(switchRocker);
+
+    // 4-LED fuel gauge
+    [0x22c55e, 0x22c55e, 0xeab308, 0xef4444].forEach((col, idx) => {
+      const led = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, 0.02), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.8 }));
+      led.position.set(0.54, 0.055, -0.32 + idx * 0.035);
+      subsystems.chassis.group.add(led);
+    });
+
+    // Buzzer
+    const buzzer = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.06, 24), matChassisMetal);
+    buzzer.position.set(-0.54, 0.07, -0.18);
+    subsystems.chassis.group.add(buzzer);
+
+    // 2 & 3. WHEELS & MOTORS
+    const wheelPositions = [
+      { x: -0.96, z:  0.68, side: -1, name: "FL" },
+      { x:  0.96, z:  0.68, side:  1, name: "FR" },
+      { x: -0.96, z: -0.68, side: -1, name: "RL" },
+      { x:  0.96, z: -0.68, side:  1, name: "RR" }
+    ];
+
     wheelPositions.forEach(pos => {
-      // Motor assembly
+      // Motor
       const motorAssy = new THREE.Group();
+      motorAssy.name = "Motor_" + pos.name;
       motorAssy.position.set(pos.side * 0.42, -0.18, pos.z);
 
-      const can = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.42, 24), matSilver);
-      can.rotation.z = Math.PI / 2;
-      motorAssy.add(can);
+      const can = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.44, 32), matMotorCan);
+      can.rotation.z = Math.PI / 2; motorAssy.add(can);
 
-      const gearbox = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.16, 24), matSilver);
-      gearbox.rotation.z = Math.PI / 2;
-      gearbox.position.x = pos.side * 0.22;
-      motorAssy.add(gearbox);
+      const endCap = new THREE.Mesh(new THREE.CylinderGeometry(0.138, 0.138, 0.04, 24), matChassisMetal);
+      endCap.rotation.z = Math.PI / 2; endCap.position.x = -pos.side * 0.23; motorAssy.add(endCap);
 
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.25, 16), matSilver);
-      shaft.rotation.z = Math.PI / 2;
-      shaft.position.x = pos.side * 0.38;
-      motorAssy.add(shaft);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.015, 12), new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 }));
+      cap.position.set(-pos.side * 0.26, 0.06, 0); motorAssy.add(cap);
 
-      // Hex coupler nut seen in image 4
-      const hexNut = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.12, 6), matSilver);
-      hexNut.rotation.z = Math.PI / 2;
-      hexNut.position.x = pos.side * 0.36;
-      motorAssy.add(hexNut);
+      const gearbox = new THREE.Mesh(new THREE.CylinderGeometry(0.148, 0.148, 0.18, 32), matSteel);
+      gearbox.rotation.z = Math.PI / 2; gearbox.position.x = pos.side * 0.23; motorAssy.add(gearbox);
+
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.28, 16), matSteel);
+      shaft.rotation.z = Math.PI / 2; shaft.position.x = pos.side * 0.42; motorAssy.add(shaft);
+
+      const hexCoupling = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.14, 6), matGoldHex);
+      hexCoupling.rotation.z = Math.PI / 2; hexCoupling.position.x = pos.side * 0.40; motorAssy.add(hexCoupling);
+
+      const grubScrew = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.10, 8), matScrew);
+      grubScrew.position.set(pos.side * 0.40, 0.08, 0); motorAssy.add(grubScrew);
+
+      const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.28, 0.28), matChassisMetal);
+      bracket.position.set(pos.side * 0.25, 0.06, 0); motorAssy.add(bracket);
 
       subsystems.motors.group.add(motorAssy);
       individualMotors.push({ mesh: motorAssy, basePos: motorAssy.position.clone(), side: pos.side });
 
-      // Wheel assembly (White rim + Black treaded tyre)
+      // Wheel
       const wheelAssy = new THREE.Group();
+      wheelAssy.name = "Wheel_" + pos.name;
       wheelAssy.position.set(pos.x, -0.18, pos.z);
 
-      const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.28, 32), matTire);
-      tire.rotation.z = Math.PI / 2;
-      wheelAssy.add(tire);
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.37, 0.37, 0.28, 32), matTire);
+      tire.rotation.z = Math.PI / 2; wheelAssy.add(tire);
 
-      // Tread ribs
-      for (let i = 0; i < 16; i++) {
-        const angle = (i / 16) * Math.PI * 2;
-        const tread = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.025, 0.04), matTire);
-        tread.position.set(0, Math.cos(angle) * 0.36, Math.sin(angle) * 0.36);
-        tread.rotation.x = angle;
-        wheelAssy.add(tread);
+      const sidewall = new THREE.Mesh(new THREE.CylinderGeometry(0.371, 0.371, 0.02, 32), matTireSidewall);
+      sidewall.rotation.z = Math.PI / 2; sidewall.position.x = pos.side * 0.135; wheelAssy.add(sidewall);
+
+      // 20 Aggressive V-lugs
+      for (let i = 0; i < 20; i++) {
+        const angle = (i / 20) * Math.PI * 2;
+        [-0.05, 0.05].forEach((zOff, lugIdx) => {
+          const lug = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.035, 0.045), matTire);
+          lug.position.set(zOff, Math.cos(angle) * 0.375, Math.sin(angle) * 0.375);
+          lug.rotation.x = angle; lug.rotation.y = (lugIdx === 0 ? 0.3 : -0.3);
+          wheelAssy.add(lug);
+        });
       }
 
-      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.29, 24), matWhiteRim);
-      rim.rotation.z = Math.PI / 2;
-      wheelAssy.add(rim);
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.29, 32), matWhiteRim);
+      rim.rotation.z = Math.PI / 2; wheelAssy.add(rim);
 
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 16), matBlackMetal);
-      hub.rotation.z = Math.PI / 2;
-      wheelAssy.add(hub);
+      for (let s = 0; s < 6; s++) {
+        const spokeAngle = (s / 6) * Math.PI * 2;
+        const spokeCutout = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.30, 16), matChassisMetal);
+        spokeCutout.rotation.z = Math.PI / 2;
+        spokeCutout.position.set(pos.side * 0.02, Math.cos(spokeAngle) * 0.17, Math.sin(spokeAngle) * 0.17);
+        wheelAssy.add(spokeCutout);
+      }
+
+      const hubNut = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.33, 6), matSteel);
+      hubNut.rotation.z = Math.PI / 2; wheelAssy.add(hubNut);
+
+      const axlePin = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.36, 12), matChassisMetal);
+      axlePin.rotation.z = Math.PI / 2; wheelAssy.add(axlePin);
 
       subsystems.wheels.group.add(wheelAssy);
       individualWheels.push({ mesh: wheelAssy, basePos: wheelAssy.position.clone(), side: pos.side });
     });
 
-    // 4. L298N MOTOR DRIVER (Front Deck)
-    const l298nAssy = new THREE.Group();
-    l298nAssy.position.set(0, 0.08, 0.68);
-
-    const l298nPcb = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.03, 0.55), matRedPCB);
-    l298nAssy.add(l298nPcb);
-
-    // Black Heatsink
-    const heatsink = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 0.18), matDarkPCB);
-    heatsink.position.set(0, 0.12, -0.02);
-    l298nAssy.add(heatsink);
-
-    // Blue Terminal Blocks (Left, Right, Front)
-    const termLeft = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.22), matBlueTerm);
-    termLeft.position.set(-0.21, 0.07, 0);
-    l298nAssy.add(termLeft);
-
-    const termRight = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.22), matBlueTerm);
-    termRight.position.set(0.21, 0.07, 0);
-    l298nAssy.add(termRight);
-
-    const termFront = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.1), matBlueTerm);
-    termFront.position.set(-0.04, 0.07, 0.21);
-    l298nAssy.add(termFront);
-
-    subsystems.l298n.group.add(l298nAssy);
-
-    // 5. BATTERY PACK (Silver Duct-Taped 3S Pack in Centre)
+    // 4. BATTERY PACK
     const batteryAssy = new THREE.Group();
-    batteryAssy.position.set(0, 0.15, -0.02);
+    batteryAssy.name = "Battery_Assembly";
+    batteryAssy.position.set(0, 0.16, -0.05);
 
-    const batteryBody = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.22, 0.52), matDuctTape);
+    [-0.22, 0, 0.22].forEach(xOff => {
+      const cell = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.65, 24), matBattery);
+      cell.rotation.x = Math.PI / 2; cell.position.set(xOff, 0, 0); batteryAssy.add(cell);
+    });
+
+    const batteryBody = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.23, 0.66), matBattery);
     batteryAssy.add(batteryBody);
 
-    // Barrel Jack Connector on top
-    const barrelJack = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.22, 16), matDarkPCB);
-    barrelJack.rotation.z = Math.PI / 4;
-    barrelJack.position.set(0.2, 0.16, 0.15);
-    batteryAssy.add(barrelJack);
+    const xt60 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.18), matXt60);
+    xt60.position.set(0.18, 0.12, 0.38); batteryAssy.add(xt60);
+
+    const jstXh = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.14), matWhiteRim);
+    jstXh.position.set(-0.25, 0.12, 0.36); batteryAssy.add(jstXh);
+
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.25, 0.14), matStrap);
+    strap.position.set(0, 0.01, 0); batteryAssy.add(strap);
+
+    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.04, 0.16), matChassisMetal);
+    buckle.position.set(0, 0.14, 0); batteryAssy.add(buckle);
 
     subsystems.battery.group.add(batteryAssy);
 
-    // 6. ESP32-WROOM + MINI BREADBOARD (Rear Deck)
-    const espAssy = new THREE.Group();
-    espAssy.position.set(0, 0.08, -0.72);
+    // 5. HIGH-DETAIL L298N DRIVER (Procedural with 7 Heatsink Fins + Terminals + Standoffs)
+    const l298nAssy = new THREE.Group();
+    l298nAssy.name = "L298N_Assembly";
+    l298nAssy.position.set(0, 0.07, 0.58);
 
-    const breadboard = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.06, 0.46), matWhiteRim);
-    espAssy.add(breadboard);
-
-    const espPcb = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.03, 0.30), matDarkPCB);
-    espPcb.position.y = 0.06;
-    espAssy.add(espPcb);
-
-    const rfShield = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.20), matSilver);
-    rfShield.position.set(-0.12, 0.085, 0);
-    espAssy.add(rfShield);
-
-    const usbPort = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.035, 0.1), matSilver);
-    usbPort.position.set(0.27, 0.075, 0);
-    espAssy.add(usbPort);
-
-    subsystems.esp32.group.add(espAssy);
-
-    // Optional: Auto-load your local l298n.glb and esp32.glb if placed in the same directory
-    const loader = new GLTFLoader();
-    loader.load('./l298n.glb', (gltf) => {
-      l298nAssy.clear();
-      gltf.scene.scale.set(0.6, 0.6, 0.6);
-      l298nAssy.add(gltf.scene);
-    }, undefined, () => {});
-
-    loader.load('./esp32.glb', (gltf) => {
-      // Keep breadboard, replace procedural ESP32 with scanned GLB
-      gltf.scene.scale.set(12, 12, 12);
-      gltf.scene.position.set(1.58, -5.62, -10.98);
-      espAssy.add(gltf.scene);
-    }, undefined, () => {});
-
-    // 7. WIRES & JUMPER HARNESS
-    function addWire(points, hexColor, radius = 0.014) {
-      const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
-      const geo = new THREE.TubeGeometry(curve, 32, radius, 8, false);
-      const mat = new THREE.MeshStandardMaterial({ color: hexColor, roughness: 0.4 });
-      subsystems.wires.group.add(new THREE.Mesh(geo, mat));
-    }
-
-    // Jumper wires (ESP32 -> L298N)
-    const jumperColors = [0xef4444, 0x3b82f6, 0xeab308, 0x22c55e, 0xa855f7, 0xf97316];
-    jumperColors.forEach((col, idx) => {
-      const offset = (idx - 2.5) * 0.05;
-      addWire([
-        [offset, 0.14, -0.62],
-        [offset * 1.4, 0.48 + (idx % 2) * 0.05, -0.05],
-        [offset * 0.6, 0.15, 0.48]
-      ], col, 0.012);
+    // 4 Brass Standoffs
+    [[-0.24, -0.22], [0.24, -0.22], [-0.24, 0.22], [0.24, 0.22]].forEach(([sx, sz]) => {
+      const standoff = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 6), matBrassStandoff);
+      standoff.position.set(sx, -0.01, sz); l298nAssy.add(standoff);
+      const topScrew = createScrewMesh(); topScrew.position.set(sx, 0.035, sz); l298nAssy.add(topScrew);
     });
 
-    // Battery Power Leads (Battery -> L298N)
-    addWire([[0.15, 0.20, 0.15], [0.25, 0.32, 0.45], [-0.08, 0.14, 0.88]], 0xdc2626, 0.02);
-    addWire([[0.05, 0.20, 0.15], [0.12, 0.30, 0.45], [0.02, 0.14, 0.88]], 0x111827, 0.02);
+    // Red PCB
+    const lPcb = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.03, 0.60), matRedPCB);
+    lPcb.position.y = 0.02; l298nAssy.add(lPcb);
 
-    // Motor Power Leads (L298N -> Left & Right Motors)
-    addWire([[-0.22, 0.12, 0.68], [-0.52, 0.06, 0.68], [-0.52, -0.15, 0.68]], 0xdc2626, 0.015);
-    addWire([[ 0.22, 0.12, 0.68], [ 0.52, 0.06, 0.68], [ 0.52, -0.15, 0.68]], 0xdc2626, 0.015);
-    addWire([[-0.22, 0.12, 0.62], [-0.55, 0.06, -0.68], [-0.52, -0.15, -0.68]], 0x111827, 0.015);
-    addWire([[ 0.22, 0.12, 0.62], [ 0.55, 0.06, -0.68], [ 0.52, -0.15, -0.68]], 0x111827, 0.015);
+    // Finned Black Aluminum Heatsink (Base + 7 Fins)
+    const hsBase = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.06, 0.20), matDarkPCB);
+    hsBase.position.set(0, 0.065, -0.04); l298nAssy.add(hsBase);
 
-    // UI & Explode Logic
+    for (let f = 0; f < 7; f++) {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.18, 0.20), matDarkPCB);
+      fin.position.set(-0.11 + f * 0.036, 0.17, -0.04);
+      l298nAssy.add(fin);
+    }
+
+    // L298 Multiwatt IC screwed to heatsink
+    const l298Ic = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.03), matDarkPCB);
+    l298Ic.position.set(0, 0.12, 0.075); l298nAssy.add(l298Ic);
+
+    const icTabScrew = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.04, 12), matScrew);
+    icTabScrew.rotation.x = Math.PI / 2; icTabScrew.position.set(0, 0.15, 0.08); l298nAssy.add(icTabScrew);
+
+    // 3 Blue Terminal Blocks (Motor Left, Motor Right, Power Front)
+    const termL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.13, 0.24), matBlueTerm);
+    termL.position.set(-0.23, 0.09, 0.02); l298nAssy.add(termL);
+    [-0.05, 0.05].forEach(tz => {
+      const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.03, 8), matGoldHex);
+      sc.position.set(-0.23, 0.155, 0.02 + tz); l298nAssy.add(sc);
+    });
+
+    const termR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.13, 0.24), matBlueTerm);
+    termR.position.set(0.23, 0.09, 0.02); l298nAssy.add(termR);
+    [-0.05, 0.05].forEach(tz => {
+      const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.03, 8), matGoldHex);
+      sc.position.set(0.23, 0.155, 0.02 + tz); l298nAssy.add(sc);
+    });
+
+    const termPwr = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.13, 0.12), matBlueTerm);
+    termPwr.position.set(-0.06, 0.09, 0.23); l298nAssy.add(termPwr);
+    [-0.07, 0, 0.07].forEach(tx => {
+      const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.03, 8), matGoldHex);
+      sc.position.set(-0.06 + tx, 0.155, 0.23); l298nAssy.add(sc);
+    });
+
+    // Electrolytic capacitors on L298N
+    const lCap1 = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.12, 16), matDarkPCB);
+    lCap1.position.set(0.16, 0.095, 0.20); l298nAssy.add(lCap1);
+    const lCap2 = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.09, 16), matDarkPCB);
+    lCap2.position.set(-0.20, 0.08, -0.18); l298nAssy.add(lCap2);
+
+    // 78M05 5V Regulator with metal tab
+    const reg7805 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.03, 0.07), matDarkPCB);
+    reg7805.position.set(0.16, 0.05, -0.16); l298nAssy.add(reg7805);
+
+    // Logic header pins
+    for (let p = 0; p < 6; p++) {
+      const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.07, 6), matGoldHex);
+      pin.position.set(-0.10 + p * 0.04, 0.065, -0.22); l298nAssy.add(pin);
+    }
+
+    subsystems.l298n.group.add(l298nAssy);
+
+    // 6. HIGH-DETAIL ESP32-WROOM & BREADBOARD
+    const espBaseAssy = new THREE.Group();
+    espBaseAssy.name = "ESP32_Mounting_Base";
+    espBaseAssy.position.set(0, 0.07, -0.68);
+
+    const breadboard = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.05, 0.46), matBreadboard);
+    espBaseAssy.add(breadboard);
+
+    // ESP32 NodeMCU Board
+    const espPcb = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.025, 0.32), matDarkPCB);
+    espPcb.position.y = 0.04; espBaseAssy.add(espPcb);
+
+    // Metal RF Shield
+    const rfShield = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.035, 0.22), matSteel);
+    rfShield.position.set(-0.06, 0.065, 0); espBaseAssy.add(rfShield);
+
+    // Gold PCB Antenna
+    const antTrace = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.005, 0.22), matGoldHex);
+    antTrace.position.set(0.20, 0.055, 0); espBaseAssy.add(antTrace);
+
+    // Micro USB Receptacle
+    const usbMetal = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.04, 0.11), matSteel);
+    usbMetal.position.set(-0.28, 0.058, 0); espBaseAssy.add(usbMetal);
+
+    // CP2102 IC
+    const cp2102 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.015, 0.06), matDarkPCB);
+    cp2102.position.set(-0.16, 0.055, 0); espBaseAssy.add(cp2102);
+
+    // Push buttons (EN and BOOT)
+    [-0.08, 0.08].forEach(bz => {
+      const btnBase = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.025, 0.04), matSteel);
+      btnBase.position.set(-0.24, 0.055, bz); espBaseAssy.add(btnBase);
+      const btnNipple = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.01, 8), matChassisMetal);
+      btnNipple.position.set(-0.24, 0.07, bz); espBaseAssy.add(btnNipple);
+    });
+
+    // Pin header blocks under ESP32
+    [-0.13, 0.13].forEach(pz => {
+      const headerBlock = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.03, 0.03), matDarkPCB);
+      headerBlock.position.set(0, 0.02, pz); espBaseAssy.add(headerBlock);
+    });
+
+    subsystems.esp32.group.add(espBaseAssy);
+
+    // 7. WIRING & HARNESS
+    const jumperCols = [0xef4444, 0x3b82f6, 0xeab308, 0x22c55e, 0xa855f7, 0xf97316];
+    jumperCols.forEach((col, idx) => {
+      const xOff = (idx - 2.5) * 0.045;
+      createWire(subsystems.wires.group, [
+        [xOff, 0.12, -0.58],
+        [xOff * 1.5, 0.38 + (idx % 2) * 0.04, -0.25],
+        [xOff * 1.6, 0.38 + (idx % 2) * 0.04,  0.15],
+        [xOff * 0.8, 0.16, 0.42]
+      ], col, 0.011);
+
+      const plugA = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.06, 0.03), matChassisMetal);
+      plugA.position.set(xOff, 0.10, -0.58); subsystems.wires.group.add(plugA);
+
+      const plugB = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.06, 0.03), matChassisMetal);
+      plugB.position.set(xOff * 0.8, 0.12, 0.42); subsystems.wires.group.add(plugB);
+    });
+
+    // Power cables
+    createWire(subsystems.wires.group, [[0.18, 0.24, 0.34], [0.35, 0.20, 0.22], [0.54, 0.09, -0.08]], 0xdc2626, 0.022);
+    createWire(subsystems.wires.group, [[0.54, 0.09, -0.05], [0.45, 0.15, 0.25], [0.10, 0.12, 0.72]], 0xdc2626, 0.022);
+    createWire(subsystems.wires.group, [[0.18, 0.22, 0.34], [0.25, 0.16, 0.45], [0.02, 0.12, 0.72]], 0x111827, 0.022);
+
+    // Motor cables
+    createWire(subsystems.wires.group, [[-0.24, 0.12, 0.68], [-0.52, 0.06, 0.68], [-0.52, -0.16, 0.68]], 0xdc2626, 0.016);
+    createWire(subsystems.wires.group, [[-0.24, 0.12, 0.62], [-0.54, 0.06, -0.68], [-0.52, -0.16, -0.68]], 0x111827, 0.016);
+    createWire(subsystems.wires.group, [[ 0.24, 0.12, 0.68], [ 0.52, 0.06, 0.68], [ 0.52, -0.16, 0.68]], 0xdc2626, 0.016);
+    createWire(subsystems.wires.group, [[ 0.24, 0.12, 0.62], [ 0.54, 0.06, -0.68], [ 0.52, -0.16, -0.68]], 0x111827, 0.016);
+
+    [[-0.52, 0.68], [-0.52, -0.68], [0.52, 0.68], [0.52, -0.68]].forEach(([gx, gz]) => {
+      const grommet = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.05, 16), matTire);
+      grommet.position.set(gx, 0.035, gz); subsystems.chassis.group.add(grommet);
+    });
+
+    // Optional: Load downloaded GLB models if served via web server
+    const gltfLoader = new GLTFLoader();
+    if (window.location.protocol.startsWith('http')) {
+      gltfLoader.load('./robothon_3_bot.glb', (gltf) => {
+        console.log("Loaded full robothon_3_bot.glb from server!");
+        botRoot.clear();
+        botRoot.add(gltf.scene);
+        document.getElementById('status-text').textContent = "Server GLB Loaded (484 nodes)";
+      }, undefined, () => {});
+    }
+
+    // Drag and Drop & Local File Picker (Works on file:/// with 0 CORS restrictions!)
+    const fileInput = document.getElementById('file-input');
+    const openFileBtn = document.getElementById('open-file-btn');
+    const dropOverlay = document.getElementById('drop-overlay');
+
+    openFileBtn.addEventListener('click', () => fileInput.click());
+
+    function loadCustomGLB(buffer, filename) {
+      document.getElementById('status-text').textContent = "Parsing " + filename + "...";
+      gltfLoader.parse(buffer, '', (gltf) => {
+        botRoot.clear();
+        botRoot.add(gltf.scene);
+
+        // Center loaded object
+        const b = new THREE.Box3().setFromObject(gltf.scene);
+        const ctr = new THREE.Vector3(); b.getCenter(ctr);
+        gltf.scene.position.sub(ctr);
+        controls.target.set(0, 0, 0);
+
+        document.getElementById('status-text').textContent = "Loaded: " + filename;
+        document.getElementById('info-title').textContent = "Custom Model: " + filename;
+        document.getElementById('info-desc').textContent = "Successfully loaded and rendered custom 3D model into the inspection viewport.";
+      }, (err) => {
+        console.error("GLTF Parse Error:", err);
+        alert("Failed to parse GLB file: " + err.message);
+      });
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (re) => loadCustomGLB(re.target.result, file.name);
+        reader.readAsArrayBuffer(file);
+      }
+    });
+
+    window.addEventListener('dragover', (e) => { e.preventDefault(); dropOverlay.classList.add('active'); });
+    window.addEventListener('dragleave', () => dropOverlay.classList.remove('active'));
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropOverlay.classList.remove('active');
+      const file = e.dataTransfer.files[0];
+      if (file && (file.name.endsWith('.glb') || file.name.endsWith('.gltf'))) {
+        const reader = new FileReader();
+        reader.onload = (re) => loadCustomGLB(re.target.result, file.name);
+        reader.readAsArrayBuffer(file);
+      }
+    });
+
+    // UI & Explode Controller
     let targetExplode = 0;
     let currentExplode = 0;
     const slider = document.getElementById('explode-slider');
@@ -412,23 +867,25 @@
     const toggleBtn = document.getElementById('toggle-explode-btn');
 
     function setExplodeTarget(val) {
-      targetExplode = val;
-      slider.value = Math.round(val * 100);
-      explodeVal.textContent = `${Math.round(val * 100)}%`;
-      toggleBtn.textContent = val > 0.5 ? "Assemble Bot" : "Explode Bot";
+      targetExplode = Math.max(0, Math.min(1, val));
+      slider.value = Math.round(targetExplode * 100);
+      explodeVal.textContent = `${Math.round(targetExplode * 100)}%`;
+      toggleBtn.textContent = targetExplode > 0.4 ? "Assemble Bot" : "Explode Bot";
     }
 
     slider.addEventListener('input', (e) => setExplodeTarget(e.target.value / 100));
-    toggleBtn.addEventListener('click', () => setExplodeTarget(targetExplode > 0.5 ? 0 : 1));
+    toggleBtn.addEventListener('click', () => setExplodeTarget(targetExplode > 0.4 ? 0 : 0.85));
+
     document.getElementById('reset-cam-btn').addEventListener('click', () => {
-      camera.position.set(3.8, 2.8, 4.2);
-      controls.target.set(0, 0.2, 0);
+      camera.position.set(4.5, 3.2, 4.2);
+      controls.target.set(0.25, 0.05, 0);
     });
 
-    // Build Component Chips
+    // Component Inspection Chips
     const partsContainer = document.getElementById('parts-container');
     const infoTitle = document.getElementById('info-title');
     const infoDesc = document.getElementById('info-desc');
+    const infoSpecs = document.getElementById('info-specs');
 
     Object.entries(subsystems).forEach(([key, sub]) => {
       const chip = document.createElement('div');
@@ -439,12 +896,13 @@
         chip.classList.add('active');
         infoTitle.textContent = sub.name;
         infoDesc.textContent = sub.desc;
-        if (targetExplode < 0.4) setExplodeTarget(0.75);
+        infoSpecs.textContent = sub.specs;
+        if (targetExplode < 0.35) setExplodeTarget(0.75);
       });
       partsContainer.appendChild(chip);
     });
 
-    // Export .GLB Button
+    // Download GLB Model Button
     document.getElementById('export-glb-btn').addEventListener('click', () => {
       const exporter = new GLTFExporter();
       exporter.parse(
@@ -466,17 +924,15 @@
       requestAnimationFrame(animate);
       currentExplode += (targetExplode - currentExplode) * 0.08;
 
-      // Apply explode offsets
       Object.entries(subsystems).forEach(([key, sub]) => {
         if (key !== 'wheels' && key !== 'motors') {
           sub.group.position.copy(sub.explodeOffset).multiplyScalar(currentExplode);
         }
       });
 
-      // Radial outward explode for wheels & motors
       individualWheels.forEach(w => {
         w.mesh.position.set(
-          w.basePos.x + w.side * 0.95 * currentExplode,
+          w.basePos.x + w.side * 1.05 * currentExplode,
           w.basePos.y,
           w.basePos.z
         );
@@ -485,8 +941,8 @@
 
       individualMotors.forEach(m => {
         m.mesh.position.set(
-          m.basePos.x + m.side * 0.45 * currentExplode,
-          m.basePos.y - 0.55 * currentExplode,
+          m.basePos.x + m.side * 0.48 * currentExplode,
+          m.basePos.y - 0.50 * currentExplode,
           m.basePos.z
         );
       });
