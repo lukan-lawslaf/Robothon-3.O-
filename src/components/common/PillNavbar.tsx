@@ -42,9 +42,9 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
         {/* Left: Club Emblem + Divider + ROBOTHON 3.0 */}
         <Link to="/team-dashboard" className="flex items-center gap-2 group shrink-0">
           <img
-            src="/navbar_emblem.png"
-            alt="Robothon Emblem"
-            className="w-6 h-6 object-contain group-hover:scale-105 transition-transform"
+            src="/robotics_club_logo.svg"
+            alt="Robotics Club"
+            className="h-7 w-auto object-contain group-hover:scale-105 transition-transform"
           />
           <div className="h-4 w-px bg-stone-700/80 mx-1 hidden sm:block" />
           <div className="flex items-center">

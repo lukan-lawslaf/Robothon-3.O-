@@ -53,16 +53,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Logo & Platform Name */}
           <Link to="/leaderboard" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-[#251306] flex items-center justify-center text-[#FEF3E2] shadow-md border border-[#F4AE52]/40 group-hover:scale-105 transition-transform">
-              <Cpu className="w-5 h-5 text-[#F4AE52]" />
-            </div>
+            <img
+              src="/robotics_club_logo.svg"
+              alt="Robotics Club"
+              className="h-8 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-[#251306] tracking-tight text-base sm:text-lg">
                   ROBOTHON
                 </span>
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-[#D4621A] text-[#FEF3E2]">
-                  3.O
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-[#ea580c] text-white">
+                  3.0
                 </span>
               </div>
               <p className="text-[10px] font-mono text-[#251306]/60 hidden sm:block">
