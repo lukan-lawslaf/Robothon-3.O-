@@ -13,7 +13,6 @@ export interface SubsystemInfo {
   color: string;
   desc: string;
   specs: string;
-  hotspotOffset: [number, number, number];
 }
 
 export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
@@ -24,7 +23,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#ea580c',
     desc: '12V 300 RPM GA25 metal geared DC motors with planetary gearboxes and precision brass hex couplers.',
     specs: '12V DC | 300 RPM | 15 kg.cm Torque | 4mm D-cut Hex',
-    hotspotOffset: [0.75, -0.2, -0.4],
   },
   l298n: {
     name: 'L298N Motor Driver Setup',
@@ -33,7 +31,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#ea580c',
     desc: 'Dual H-Bridge motor driver with multi-fin black anodized heatsink and screw terminal block headers.',
     specs: 'Peak: 2A/channel | Logic: 5V TTL | Heat: Aluminum Fin',
-    hotspotOffset: [0.35, 0.45, 0.4],
   },
   wires: {
     name: 'ESP32 Logic Wiring',
@@ -42,7 +39,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#ea580c',
     desc: 'Color-coded Dupont logic ribbon jumpers, thick 14AWG silicone 12V power leads, and rubber anti-chafe grommets.',
     specs: 'Logic: 28AWG Dupont | Power: 14AWG Silicone | Common Ground Rail',
-    hotspotOffset: [0, 0.70, 0.1],
   },
   esp32: {
     name: 'Firmware & Wi-Fi / BLE',
@@ -51,7 +47,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#ea580c',
     desc: 'ESP32-WROOM-32 Wi-Fi / BLE microcontroller with metal RF shield, USB-UART bridge, and 30-pin GPIO.',
     specs: 'Dual Tensilica 240MHz | 802.11 b/g/n + BLE 4.2 | 30-pin GPIO',
-    hotspotOffset: [-0.1, 0.5, -0.55],
   },
   battery: {
     name: '3S Battery Power Integration',
@@ -60,7 +55,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#ea580c',
     desc: '11.1V 3S Li-Ion 2200mAh pack with authentic XT60 high-current gold pins and JST-XH balance lead.',
     specs: '3S1P 18650 | 2200mAh (24.4Wh) | XT60 Fused Connector',
-    hotspotOffset: [-0.25, 0.55, 0.1],
   },
   chassis: {
     name: 'Polarity & Chassis Maiden Run',
@@ -69,7 +63,6 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#ea580c',
     desc: 'Bent aluminum U-channel chassis plate with front bullbar, side motor mount flanges, and aero top deck.',
     specs: '6061-T6 Alum + ABS Deck | 140x220mm | M3 Hex Socket',
-    hotspotOffset: [0, -0.1, 0.7],
   },
   wheels: {
     name: 'Competition Wheels (x4)',
@@ -78,16 +71,8 @@ export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
     color: '#f97316',
     desc: 'Deep-dish competition white rims with 6 cutout spokes, beadlock rivets, and 20-lug chevron rubber tires.',
     specs: 'Dia: 65mm | Aggressive 20-Lug Chevron | 12mm Hex Hub',
-    hotspotOffset: [1.05, -0.1, 0.65],
   },
 };
-
-interface HotspotScreenPos {
-  key: SubsystemKey;
-  x: number;
-  y: number;
-  visible: boolean;
-}
 
 interface Bot3DViewerProps {
   activeSubsystem?: SubsystemKey | null;
@@ -102,10 +87,8 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [explodeFactor, setExplodeFactor] = useState<number>(0);
-  const [hoveredHotspot, setHoveredHotspot] = useState<SubsystemKey | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'3d' | 'top' | 'side'>('3d');
-  const [hotspotPositions, setHotspotPositions] = useState<HotspotScreenPos[]>([]);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -120,7 +103,7 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
     const container = mountRef.current;
     const stage = stageRef.current;
 
-    // Robust size detection: stageRef has aspect-4/3 min-h-[460px]
+    // Robust size detection
     let width = stage?.clientWidth || container.clientWidth || 640;
     let height = stage?.clientHeight || container.clientHeight || 480;
     if (height <= 0) height = Math.round(width * 0.75) || 480;
@@ -130,9 +113,9 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
     scene.background = null;
     sceneRef.current = scene;
 
-    // Camera setup - zoomed for optimal isometric view
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
-    camera.position.set(4.2, 3.0, 4.0);
+    // Camera setup - zoomed closer to make the bot prominent and heroic
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(3.8, 2.7, 3.6);
     cameraRef.current = camera;
 
     // Renderer
@@ -157,8 +140,8 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.target.set(0, 0, 0);
-    controls.minDistance = 2.0;
-    controls.maxDistance = 9.0;
+    controls.minDistance = 1.5;
+    controls.maxDistance = 8.5;
     controls.maxPolarAngle = Math.PI / 2 + 0.05;
     controlsRef.current = controls;
 
@@ -252,56 +235,11 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
       }
     );
 
-    // Continuous render loop + 2D hotspot projections
+    // Continuous render loop
     let animId: number;
     const animate = () => {
       animId = requestAnimationFrame(animate);
       controls.update();
-
-      const newPositions: HotspotScreenPos[] = [];
-      const tempVec = new THREE.Vector3();
-
-      const curWidth = stage?.clientWidth || container.clientWidth || 640;
-      const curHeight = stage?.clientHeight || container.clientHeight || 480;
-
-      (Object.keys(SUBSYSTEMS_DATA) as SubsystemKey[]).forEach((key) => {
-        const info = SUBSYSTEMS_DATA[key];
-        const offset = info.hotspotOffset;
-        const part = modelPartsRef.current[key];
-
-        tempVec.set(offset[0], offset[1], offset[2]);
-        if (part) {
-          tempVec.add(part.position);
-        }
-
-        if (botGroupRef.current) {
-          tempVec.applyMatrix4(botGroupRef.current.matrixWorld);
-        }
-
-        tempVec.project(camera);
-
-        const halfWidth = curWidth / 2;
-        const halfHeight = curHeight / 2;
-        const screenX = tempVec.x * halfWidth + halfWidth;
-        const screenY = -(tempVec.y * halfHeight) + halfHeight;
-        const isVisible =
-          tempVec.z < 1 &&
-          isFinite(screenX) &&
-          isFinite(screenY) &&
-          screenX > 25 &&
-          screenX < curWidth - 25 &&
-          screenY > 25 &&
-          screenY < curHeight - 25;
-
-        newPositions.push({
-          key,
-          x: screenX,
-          y: screenY,
-          visible: isVisible,
-        });
-      });
-
-      setHotspotPositions(newPositions);
       renderer.render(scene, camera);
     };
     animate();
@@ -350,11 +288,11 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
     setViewMode(mode);
     if (!cameraRef.current || !controlsRef.current) return;
     if (mode === '3d') {
-      cameraRef.current.position.set(4.2, 3.0, 4.0);
+      cameraRef.current.position.set(3.8, 2.7, 3.6);
     } else if (mode === 'top') {
-      cameraRef.current.position.set(0, 5.2, 0.001);
+      cameraRef.current.position.set(0, 4.8, 0.001);
     } else if (mode === 'side') {
-      cameraRef.current.position.set(5.2, 0.5, 0);
+      cameraRef.current.position.set(4.8, 0.5, 0);
     }
     controlsRef.current.target.set(0, 0, 0);
     controlsRef.current.update();
@@ -447,52 +385,6 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
           <span className="text-xs font-mono text-stone-300">Loading 3D Autonomous Bot...</span>
         </div>
       )}
-
-      {/* Minimal Concentric Orange Hotspot Dots */}
-      <div className="absolute inset-0 pointer-events-none z-10">
-        {hotspotPositions.map(({ key, x, y, visible }) => {
-          if (!visible) return null;
-          const isHovered = hoveredHotspot === key;
-          const isSelected = activeSubsystem === key;
-
-          return (
-            <div
-              key={key}
-              style={{
-                left: `${x}px`,
-                top: `${y}px`,
-                transform: 'translate(-50%, -50%)',
-              }}
-              className="absolute pointer-events-auto flex items-center justify-center cursor-pointer"
-              onClick={() => onSelectSubsystem && onSelectSubsystem(key)}
-              onMouseEnter={() => setHoveredHotspot(key)}
-              onMouseLeave={() => setHoveredHotspot(null)}
-              title={SUBSYSTEMS_DATA[key].name}
-            >
-              <div className="relative flex items-center justify-center">
-                {(isSelected || isHovered) && (
-                  <span className="absolute w-7 h-7 rounded-full bg-[#ea580c]/30 animate-ping pointer-events-none" />
-                )}
-                <span
-                  className={`rounded-full flex items-center justify-center transition-all duration-200 shadow-lg ${
-                    isSelected
-                      ? 'w-6 h-6 border-2 border-white bg-[#ea580c] ring-2 ring-[#ea580c]/60 scale-110'
-                      : isHovered
-                      ? 'w-5 h-5 border-2 border-white bg-[#ea580c] scale-105'
-                      : 'w-5 h-5 border-2 border-white/90 bg-[#ea580c]'
-                  }`}
-                >
-                  <span
-                    className={`rounded-full bg-white transition-all ${
-                      isSelected ? 'w-2 h-2' : 'w-1.5 h-1.5'
-                    }`}
-                  />
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
       {/* Bottom Floating Overlay: Explode view slider + percentage + reset */}
       <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#1c1611]/90 backdrop-blur-md border border-[#332820] shadow-lg">
