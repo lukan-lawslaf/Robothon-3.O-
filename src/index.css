@@ -2,32 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-cream: #FEF3E2;
+  --accent-amber: #F4AE52;
+  --accent-orange: #D4621A;
+  --surface-espresso: #2A1A0E;
+  --border-subtle: rgba(254, 243, 226, 0.14);
+}
+
 @layer base {
   body {
-    @apply bg-[#070d1e] text-slate-100 font-sans;
+    background-color: var(--surface-espresso);
+    color: var(--bg-cream);
+    font-family: 'Space Grotesk', -apple-system, sans-serif;
+    font-weight: 400;
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b132b;
+  background: #1F1208;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+  background: rgba(244, 174, 82, 0.25);
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: rgba(244, 174, 82, 0.5);
 }
 
-/* Subtle glow effects */
-.glow-cyan {
-  box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.35);
+/* Restrained VEYRA glow utility classes */
+.glow-amber {
+  box-shadow: 0 0 25px -4px rgba(244, 174, 82, 0.28);
 }
-.glow-blue {
-  box-shadow: 0 0 25px -5px rgba(37, 99, 235, 0.4);
+.glow-orange {
+  box-shadow: 0 0 25px -4px rgba(212, 98, 26, 0.35);
+}
+.glow-subtle {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
 }

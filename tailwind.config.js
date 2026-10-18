@@ -8,26 +8,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          900: '#1e3a8a',
-          accent: '#00f2fe',
-          electric: '#0066eb'
+        cream: {
+          50: '#fffbf5',
+          100: '#FEF3E2',
+          200: '#F9E5C8',
         },
-        navy: {
-          800: '#0b132b',
-          900: '#070d1e',
-          950: '#030712',
-        }
+        amber: {
+          gold: '#F4AE52',
+          400: '#F4AE52',
+        },
+        rust: {
+          orange: '#D4621A',
+          600: '#D4621A',
+        },
+        espresso: {
+          900: '#2A1A0E',
+          950: '#1F1208',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
-      }
+        sans: ['"Space Grotesk"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
+      },
+      letterSpacing: {
+        tighter: '-0.035em',
+        tight: '-0.025em',
+      },
     },
   },
   plugins: [],

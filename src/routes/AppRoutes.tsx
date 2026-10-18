@@ -1,55 +1,74 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
-// Public Views
+// Views
+import { MechanicalHelmetSplash } from '../components/splash/MechanicalHelmetSplash';
 import { LoginPage } from '../pages/public/LoginPage';
 import { LiveLeaderboardPage } from '../pages/public/LiveLeaderboardPage';
-
-// Participant Views
 import { ParticipantDashboard } from '../pages/participant/Dashboard';
-
-// Admin Views
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
+import { SubsystemKey } from '../components/bot/Bot3DViewer';
 
 interface AppRoutesProps {
   currentRole: 'participant' | 'admin' | 'public';
   setCurrentRole: (role: 'participant' | 'admin' | 'public') => void;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  onSelectSubsystem: (sub: SubsystemKey) => void;
 }
 
-export const AppRoutes: React.FC<AppRoutesProps> = ({ currentRole, setCurrentRole }) => {
+export const AppRoutes: React.FC<AppRoutesProps> = ({
+  currentRole,
+  setCurrentRole,
+  activeTab,
+  onTabChange,
+  onSelectSubsystem,
+}) => {
+  const navigate = useNavigate();
+
   return (
     <Routes>
-      {/* 1. Dual Login Screen */}
+      {/* 1. Mechanical Helmet Splash Pre-loader */}
       <Route
-        path="/login"
-        element={<LoginPage onLoginSuccess={(role) => setCurrentRole(role)} />}
+        path="/splash"
+        element={<MechanicalHelmetSplash onEnter={() => navigate('/login')} />}
       />
 
-      {/* 2. Live Leaderboard Page */}
-      <Route path="/leaderboard" element={<LiveLeaderboardPage />} />
-
-      {/* 3. Participant Dashboard */}
-      <Route path="/team-dashboard" element={<ParticipantDashboard />} />
-
-      {/* 4. Tech Team Admin Portal */}
-      <Route path="/admin-dashboard" element={<AdminDashboard />} />
-
-      {/* Default Redirection */}
+      {/* 2. Dual Login Screen ("Human Meets Machine") */}
       <Route
-        path="/"
+        path="/login"
         element={
-          currentRole === 'admin' ? (
-            <Navigate to="/admin-dashboard" replace />
-          ) : currentRole === 'participant' ? (
-            <Navigate to="/team-dashboard" replace />
-          ) : (
-            <Navigate to="/leaderboard" replace />
-          )
+          <LoginPage
+            onLoginSuccess={(role) => {
+              setCurrentRole(role);
+            }}
+          />
         }
       />
 
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/leaderboard" replace />} />
+      {/* 3. Live Leaderboard Page */}
+      <Route path="/leaderboard" element={<LiveLeaderboardPage />} />
+
+      {/* 4. Participant Dashboard (Circular 3D Bot + Stacked Pill Cards) */}
+      <Route
+        path="/team-dashboard"
+        element={
+          <ParticipantDashboard
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+            onSelectSubsystem={onSelectSubsystem}
+          />
+        }
+      />
+
+      {/* 5. Tech Team Admin Portal (Inspection Target + Review Queue) */}
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
+      {/* Default route redirect to splash on first visit, or dashboard */}
+      <Route path="/" element={<MechanicalHelmetSplash onEnter={() => navigate('/login')} />} />
+
+      {/* Catch-all fallback */}
+      <Route path="*" element={<Navigate to="/team-dashboard" replace />} />
     </Routes>
   );
 };

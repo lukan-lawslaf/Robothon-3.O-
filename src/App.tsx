@@ -1,45 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, useLocation } from 'react-router-dom';
-import { Navbar } from './components/common/Navbar';
+import { PillNavbar } from './components/common/PillNavbar';
+import { BaselineFooter } from './components/common/BaselineFooter';
 import { AppRoutes } from './routes/AppRoutes';
+import { SubsystemKey } from './components/bot/Bot3DViewer';
+import { getStoredTeams } from './services/stateStore';
+import { MockTeam } from './mockData';
 
 const AppContent: React.FC = () => {
   const [currentRole, setCurrentRole] = useState<'participant' | 'admin' | 'public'>(
     (localStorage.getItem('robothon_user_role') as 'participant' | 'admin' | 'public') || 'participant'
   );
+  const [activeTab, setActiveTab] = useState<string>('checkpoints');
+  const [activeSubsystem, setActiveSubsystem] = useState<SubsystemKey>('chassis');
+  const [team, setTeam] = useState<MockTeam | null>(null);
+
   const location = useLocation();
+
+  const loadTeam = () => {
+    const teams = getStoredTeams();
+    if (teams.length > 0) setTeam(teams[0]);
+  };
+
+  useEffect(() => {
+    loadTeam();
+    window.addEventListener('robothon_store_updated', loadTeam);
+    return () => window.removeEventListener('robothon_store_updated', loadTeam);
+  }, []);
 
   const handleRoleChange = (role: 'participant' | 'admin' | 'public') => {
     setCurrentRole(role);
     localStorage.setItem('robothon_user_role', role);
   };
 
-  const isLoginPage = location.pathname === '/login';
+  // Determine if full-screen mode (splash or login)
+  const isFullScreenView = location.pathname === '/' || location.pathname === '/splash' || location.pathname === '/login';
 
   return (
-    <div className="min-h-screen bg-[#070d1e] text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
-      {!isLoginPage && (
-        <Navbar
+    <div className="min-h-screen bg-[#2A1A0E] text-[#FEF3E2] flex flex-col font-sans selection:bg-[#D4621A] selection:text-[#FEF3E2]">
+      {!isFullScreenView && (
+        <PillNavbar
           currentRole={currentRole}
           setCurrentRole={handleRoleChange}
-          teamName="AquaPulse Robotics"
+          activeTab={activeTab}
+          onTabChange={(t) => setActiveTab(t)}
         />
       )}
 
-      <main className="flex-1">
+      <main className="flex-1 flex flex-col">
         <AppRoutes
           currentRole={currentRole}
           setCurrentRole={handleRoleChange}
+          activeTab={activeTab}
+          onTabChange={(t) => setActiveTab(t)}
+          onSelectSubsystem={(sub) => setActiveSubsystem(sub)}
         />
       </main>
 
-      {!isLoginPage && (
-        <footer className="border-t border-slate-900 bg-slate-950/80 py-6 text-center text-xs text-slate-500">
-          <p>© 2026 Robothon 3.O — Robotics Boat-Building Competition & Live Scoring Platform</p>
-          <p className="mt-1 text-[11px] text-slate-600 font-mono">
-            Modular Frontend Skeleton • Hand-off comments ready for Shubham & Ishan
-          </p>
-        </footer>
+      {!isFullScreenView && (
+        <BaselineFooter
+          team={team}
+          activeSubsystem={activeSubsystem}
+        />
       )}
     </div>
   );
