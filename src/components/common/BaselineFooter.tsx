@@ -15,8 +15,8 @@ export const BaselineFooter: React.FC<BaselineFooterProps> = ({ team, activeSubs
     <footer
       className="w-full px-6 py-3 border-t flex flex-col md:flex-row items-center justify-between gap-3 text-xs z-30 transition-all"
       style={{
-        backgroundColor: '#2A1A0E',
-        borderColor: 'rgba(254, 243, 226, 0.14)',
+        backgroundColor: '#251306',
+        borderColor: 'rgba(244, 174, 82, 0.3)',
         color: '#FEF3E2',
         fontFamily: '"Space Grotesk", sans-serif',
       }}

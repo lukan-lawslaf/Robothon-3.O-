@@ -10,10 +10,10 @@ import {
 } from '../mockData';
 
 const STORAGE_KEYS = {
-  TEAMS: 'robothon_teams_v1',
-  CHECKPOINTS: 'robothon_checkpoints_v1',
-  QUIZZES: 'robothon_quizzes_v1',
-  TICKETS: 'robothon_tickets_v1',
+  TEAMS: 'robothon_teams_v2',
+  CHECKPOINTS: 'robothon_checkpoints_v2',
+  QUIZZES: 'robothon_quizzes_v2',
+  TICKETS: 'robothon_tickets_v2',
 };
 
 // Helper to initialize or retrieve from localStorage

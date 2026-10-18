@@ -4,6 +4,8 @@ import { getStoredTeams, getStoredCheckpoints } from '../../services/stateStore'
 import { applyForCheckpointReview } from '../../services/backendService';
 import { fetchQuiz, submitQuizAnswers } from '../../services/quizService';
 import { Bot3DViewer, SubsystemKey, SUBSYSTEMS_DATA } from '../../components/bot/Bot3DViewer';
+import SpringCheck from '../../components/common/SpringCheck';
+import SwipeRow from '../../components/common/SwipeRow';
 import {
   CheckCircle2,
   Clock,
@@ -14,7 +16,10 @@ import {
   ChevronRight,
   AlertCircle,
   HelpCircle,
-  CheckSquare,
+  Sparkles,
+  Cpu,
+  Layers,
+  ChevronLeft,
 } from 'lucide-react';
 
 interface ParticipantDashboardProps {
@@ -23,18 +28,6 @@ interface ParticipantDashboardProps {
   onSelectSubsystem?: (subsystem: SubsystemKey) => void;
 }
 
-// Map checkpoint steps to 3D bot subsystems for 3D synchronization
-const CHECKPOINT_SUBSYSTEM_MAP: Record<number, SubsystemKey> = {
-  1: 'chassis',
-  2: 'motors',
-  3: 'l298n',
-  4: 'wires',
-  5: 'battery',
-  6: 'esp32',
-  7: 'chassis',
-  8: 'wheels',
-};
-
 export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
   activeTab = 'checkpoints',
   onTabChange,
@@ -42,8 +35,8 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
 }) => {
   const [team, setTeam] = useState<MockTeam | null>(null);
   const [checkpoints, setCheckpoints] = useState<MockCheckpoint[]>([]);
-  const [activeSubsystem, setActiveSubsystem] = useState<SubsystemKey>('chassis');
-  const [activeCpIndex, setActiveCpIndex] = useState<number>(2); // Step 3 active by default
+  const [activeSubsystem, setActiveSubsystem] = useState<SubsystemKey>('motors');
+  const [activeCpIndex, setActiveCpIndex] = useState<number>(2); // CP 03 active by default
 
   // Quiz state
   const [activeQuiz, setActiveQuiz] = useState<MockQuiz | null>(null);
@@ -56,7 +49,9 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
 
   const loadData = () => {
     const teams = getStoredTeams();
-    setTeam(teams[0]); // AquaPulse Robotics
+    if (teams && teams.length > 0) {
+      setTeam(teams[0]); // AquaPulse Robotics
+    }
     const cps = getStoredCheckpoints();
     setCheckpoints(cps);
   };
@@ -85,9 +80,17 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
 
   const handleSelectCheckpoint = (idx: number, cp: MockCheckpoint) => {
     setActiveCpIndex(idx);
-    const sub = CHECKPOINT_SUBSYSTEM_MAP[cp.stepNumber] || 'chassis';
+    const sub = (cp.subsystem as SubsystemKey) || 'chassis';
     setActiveSubsystem(sub);
     if (onSelectSubsystem) onSelectSubsystem(sub);
+  };
+
+  const handle3DSubsystemSelect = (sub: SubsystemKey) => {
+    setActiveSubsystem(sub);
+    const matchedIdx = checkpoints.findIndex((c) => c.subsystem === sub);
+    if (matchedIdx !== -1) {
+      setActiveCpIndex(matchedIdx);
+    }
   };
 
   const handleApplyReview = async (cpId: string) => {
@@ -101,137 +104,186 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
     }
   };
 
+  // Quiz Handling
   const handleStartQuiz = async (quizId: string) => {
     const q = await fetchQuiz(quizId);
-    setActiveQuiz(q);
-    setCurrentQuestionIdx(0);
-    setQuizAnswers({});
-    setQuizSecondsLeft(q.timeLimit);
-    setQuizResultNotice(null);
+    if (q) {
+      setActiveQuiz(q);
+      setCurrentQuestionIdx(0);
+      setQuizAnswers({});
+      setQuizSecondsLeft(q.timeLimit);
+      setQuizResultNotice(null);
+    }
+  };
+
+  const handleSelectOption = (questionId: string, optIdx: number) => {
+    setQuizAnswers((prev) => ({ ...prev, [questionId]: optIdx }));
   };
 
   const handleQuizFinalSubmit = async () => {
     if (!activeQuiz || !team) return;
+    setQuizSubmitting(true);
     try {
-      setQuizSubmitting(true);
       const res = await submitQuizAnswers(team.id, activeQuiz.id, quizAnswers);
       setQuizResultNotice(
-        `Quiz submitted! You scored ${res.score} / ${res.totalPoints} points. ${
-          res.isQualified ? 'You are qualified for Round 2!' : ''
+        `Quiz submitted! Score: ${res.score}/${activeQuiz.totalPoints}. Qualification Status: ${
+          res.isQualified ? 'TOP 50 QUALIFIED' : 'ELIMINATED'
         }`
       );
-      loadData();
       setActiveQuiz(null);
+      loadData();
     } finally {
       setQuizSubmitting(false);
     }
   };
 
-  if (!team) return null;
+  const activeCheckpoint = checkpoints[activeCpIndex] || checkpoints[0];
+  const approvedCount = checkpoints.filter((c) => c.status === 'approved').length;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 flex-1 flex flex-col justify-between">
-      {/* Quiz Submission Notice if present */}
-      {quizResultNotice && (
-        <div className="mb-4 p-3.5 rounded-2xl bg-[#D4621A]/20 border border-[#D4621A]/40 text-[#FEF3E2] text-xs font-mono flex items-center justify-between">
-          <span>{quizResultNotice}</span>
-          <button
-            onClick={() => setQuizResultNotice(null)}
-            className="text-[#F4AE52] hover:underline ml-4"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+    <div className="w-full min-h-[calc(100vh-65px)] bg-[#FEF3E2] text-[#251306] flex flex-col justify-between p-4 sm:p-6 lg:p-8">
+      {/* Top Participant Status Header */}
+      <div className="max-w-7xl mx-auto w-full mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-[#F4AE52]/40 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#251306] text-[#FEF3E2] flex items-center justify-center font-mono font-bold text-sm border border-[#F4AE52]/50 shadow-md">
+              01
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-bold text-[#251306] tracking-tight">
+                  {team?.teamName || 'AquaPulse Robotics'}
+                </h1>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 font-semibold">
+                  Round 2 Active
+                </span>
+              </div>
+              <p className="text-xs font-mono text-[#251306]/70">
+                TABLE 01 • Current Stage: <span className="font-semibold text-[#D4621A]">{activeCheckpoint?.code || 'CP 03'}</span>
+              </p>
+            </div>
+          </div>
 
-      {/* Main Two-Column Stage: Left 3D Viewport + Right Stacked Pill Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[68vh]">
-        {/* Left Stage (Col 1-6): Circular Framed 3D Bot / Quiz Telemetry */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center relative">
-          {activeTab === 'checkpoints' || !activeQuiz ? (
+          {/* Points Breakdown Pill */}
+          <div className="flex items-center gap-2 font-mono text-xs">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FEF3E2] border border-[#F4AE52]/40 text-[#251306]/80 text-[11px]">
+              <span>CP: <strong className="text-[#251306]">{team?.checkpointPoints || 0}</strong></span>
+              <span>+</span>
+              <span>Quiz: <strong className="text-[#251306]">{team?.quizPoints || 0}</strong></span>
+              <span>+</span>
+              <span>Mini: <strong className="text-[#251306]">{team?.miniGamePoints || 0}</strong></span>
+            </div>
+            <div className="px-3.5 py-1.5 rounded-xl bg-[#251306] text-[#FEF3E2] flex items-center gap-1.5 shadow-sm border border-[#F4AE52]/40">
+              <span className="text-[10px] uppercase text-[#F4AE52]">Total:</span>
+              <span className="text-sm font-bold text-[#FEF3E2]">{team?.totalPoints || 0} pts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Two-Column Interactive Workspace */}
+      <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start my-auto">
+        {/* Left Column (lg:col-span-6): 3D Observation Aperture & Controls */}
+        <div className="lg:col-span-6 flex flex-col items-center justify-center">
+          {activeTab === 'checkpoints' ? (
             <div className="w-full flex flex-col items-center">
               <Bot3DViewer
                 activeSubsystem={activeSubsystem}
-                onSelectSubsystem={(k) => {
-                  setActiveSubsystem(k);
-                  if (onSelectSubsystem) onSelectSubsystem(k);
-                }}
+                onSelectSubsystem={handle3DSubsystemSelect}
+                highlightedMilestone={activeCheckpoint?.stepNumber}
               />
-
-              {/* Subsystem Technical Detail Badge */}
-              <div className="mt-3 text-center max-w-sm">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4AE52]">
-                  {SUBSYSTEMS_DATA[activeSubsystem]?.category} Spec:
-                </span>
-                <p className="text-xs text-[#FEF3E2]/80 font-mono mt-0.5 truncate">
-                  {SUBSYSTEMS_DATA[activeSubsystem]?.specs}
-                </p>
-              </div>
             </div>
-          ) : (
-            /* Quiz Active Viewport on Left: Timer & Questions Progress */
+          ) : activeQuiz ? (
+            /* Quiz Active Viewport */
             <div
-              className="w-full aspect-square max-w-[440px] rounded-full p-8 flex flex-col items-center justify-center text-center relative shadow-2xl"
+              className="w-full aspect-square max-w-[460px] rounded-full p-8 flex flex-col items-center justify-center text-center relative shadow-2xl border-2 border-[#F4AE52]"
               style={{
-                border: '3px solid #F4AE52',
-                backgroundColor: '#2A1A0E',
-                boxShadow: '0 0 35px rgba(244,174,82,0.2)',
+                backgroundColor: '#251306',
+                boxShadow: '0 20px 50px rgba(37,19,6,0.35), 0 0 30px rgba(244,174,82,0.2)',
               }}
             >
               <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4AE52]">
                 Active Time Trial
               </span>
-              <h3 className="text-xl font-normal text-white mt-1">
+              <h3 className="text-lg font-normal text-white mt-1 px-4">
                 {activeQuiz.title}
               </h3>
 
-              {/* Huge Countdown Display */}
+              {/* Countdown Display */}
               <div className="my-5 font-mono font-bold text-4xl text-[#F4AE52]">
                 {Math.floor(quizSecondsLeft / 60)}:
                 {String(quizSecondsLeft % 60).padStart(2, '0')}
               </div>
 
-              <div className="px-4 py-1.5 rounded-full bg-[rgba(254,243,226,0.1)] border border-[#F4AE52]/30 text-xs font-mono text-[#FEF3E2]">
+              <div className="px-4 py-1.5 rounded-full bg-white/10 border border-[#F4AE52]/30 text-xs font-mono text-[#FEF3E2]">
                 Question {currentQuestionIdx + 1} of {activeQuiz.questions.length}
               </div>
 
-              <div className="mt-4 flex items-center gap-1">
+              <div className="mt-4 flex items-center gap-1.5">
                 {activeQuiz.questions.map((_, idx) => (
                   <div
                     key={idx}
-                    className={`w-3 h-1.5 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all ${
                       idx === currentQuestionIdx
                         ? 'bg-[#D4621A] w-6'
                         : quizAnswers[activeQuiz.questions[idx].id] !== undefined
-                        ? 'bg-[#F4AE52]'
-                        : 'bg-white/20'
+                        ? 'bg-[#F4AE52] w-3'
+                        : 'bg-white/20 w-3'
                     }`}
                   />
                 ))}
               </div>
             </div>
+          ) : (
+            /* Quiz Selection Slate */
+            <div className="w-full aspect-square max-w-[460px] rounded-3xl p-8 flex flex-col items-center justify-center text-center bg-white/70 border border-[#F4AE52]/40 shadow-md">
+              <Award className="w-12 h-12 text-[#D4621A] mb-3" />
+              <h3 className="text-xl font-bold text-[#251306]">Quizzes & Assessment</h3>
+              <p className="text-xs text-[#251306]/70 mt-1 max-w-sm font-mono">
+                Round 1 Elimination Quiz qualifies Top 50 teams. Round 3 Component Quiz awards extra hardware components.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 w-full max-w-xs">
+                <button
+                  type="button"
+                  onClick={() => handleStartQuiz('quiz-1')}
+                  className="w-full py-2.5 rounded-xl bg-[#251306] text-[#FEF3E2] hover:bg-[#3D2414] font-medium text-xs flex items-center justify-center gap-2 border border-[#F4AE52]/40 shadow-sm transition-all"
+                >
+                  <Play className="w-3.5 h-3.5 text-[#F4AE52]" />
+                  Launch Quiz 1 (Elimination)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleStartQuiz('quiz-2')}
+                  className="w-full py-2.5 rounded-xl bg-white hover:bg-[#FEF3E2] text-[#251306] font-medium text-xs flex items-center justify-center gap-2 border border-[#F4AE52]/60 shadow-sm transition-all"
+                >
+                  <Play className="w-3.5 h-3.5 text-[#D4621A]" />
+                  Launch Quiz 2 (Components)
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Right Column (Col 7-12): Stacked Horizontal Pill Cards (image_da50de.png Contract) */}
-        <div className="lg:col-span-6 w-full flex flex-col justify-center space-y-3.5">
+        {/* Right Column (lg:col-span-6): 7 Checkpoints Side Menu using SwipeRow & SpringCheck */}
+        <div className="lg:col-span-6 w-full flex flex-col justify-center space-y-4">
           {activeTab === 'checkpoints' ? (
             <>
+              {/* Header */}
               <div className="flex items-center justify-between pb-1 px-1">
                 <div>
-                  <h2 className="text-xl font-normal text-white tracking-tight">
+                  <h2 className="text-xl font-bold text-[#251306] tracking-tight">
                     Boat-Building Milestones
                   </h2>
-                  <p className="text-xs text-[#8C7360] font-mono">
-                    Select a card to isolate 3D components & view specs
+                  <p className="text-xs text-[#251306]/70 font-mono">
+                    Swipe left for review actions • Click card to isolate 3D components
                   </p>
                 </div>
-                <span className="text-xs font-mono text-[#F4AE52] px-3 py-1 rounded-full bg-[rgba(244,174,82,0.12)] border border-[#F4AE52]/30">
-                  {checkpoints.filter((c) => c.status === 'approved').length} / {checkpoints.length} Cleared
+                <span className="text-xs font-mono font-bold text-[#251306] px-3.5 py-1.5 rounded-full bg-white/80 border border-[#F4AE52]/50 shadow-sm">
+                  <span className="text-[#D4621A]">{approvedCount}</span> / 7 Cleared
                 </span>
               </div>
 
-              {/* Stack of Horizontal Rounded Pill Cards */}
+              {/* Checkpoints Interactive Stack */}
               <div className="space-y-3 max-h-[62vh] overflow-y-auto pr-1">
                 {checkpoints.map((cp, idx) => {
                   const isSelected = activeCpIndex === idx;
@@ -240,69 +292,155 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
                   const isAvailable = cp.status === 'available';
                   const isLocked = cp.status === 'locked';
 
+                  // Swipe actions for SwipeRow
+                  const rowActions = isAvailable
+                    ? [
+                        {
+                          id: 'apply-review',
+                          label: 'Review',
+                          icon: <Send className="w-4 h-4 text-white" />,
+                          onSelect: () => handleApplyReview(cp.id),
+                        },
+                      ]
+                    : isApproved
+                    ? [
+                        {
+                          id: 'approved-done',
+                          label: 'Cleared',
+                          icon: <CheckCircle2 className="w-4 h-4 text-white" />,
+                          color: '#10b981',
+                        },
+                      ]
+                    : isPending
+                    ? [
+                        {
+                          id: 'pending-action',
+                          label: 'In Review',
+                          icon: <Clock className="w-4 h-4 text-white" />,
+                          color: '#F4AE52',
+                        },
+                      ]
+                    : [
+                        {
+                          id: 'locked-action',
+                          label: 'Locked',
+                          icon: <Lock className="w-4 h-4 text-white" />,
+                          color: '#64748b',
+                        },
+                      ];
+
                   return (
                     <div
                       key={cp.id}
                       onClick={() => handleSelectCheckpoint(idx, cp)}
-                      className={`cursor-pointer transition-all duration-300 rounded-2xl px-5 py-4 border ${
-                        isSelected
-                          ? 'border-[#F4AE52] bg-[rgba(42,26,14,0.95)] shadow-xl shadow-[#D4621A]/10 scale-[1.01]'
-                          : isApproved
-                          ? 'border-emerald-500/30 bg-[rgba(42,26,14,0.7)] hover:border-emerald-500/60'
-                          : isPending
-                          ? 'border-[#F4AE52]/50 bg-[rgba(42,26,14,0.85)]'
-                          : isAvailable
-                          ? 'border-[rgba(254,243,226,0.2)] bg-[rgba(42,26,14,0.75)] hover:border-[#F4AE52]/50'
-                          : 'border-white/5 bg-[rgba(42,26,14,0.4)] opacity-50'
-                      }`}
-                      style={{ letterSpacing: '-0.02em' }}
+                      className="cursor-pointer transition-transform duration-200"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <span className="w-7 h-7 rounded-full bg-[#3D2414] border border-[#F4AE52]/30 text-[#F4AE52] font-mono text-xs flex items-center justify-center shrink-0">
-                            0{cp.stepNumber}
-                          </span>
-                          <div>
-                            <h3 className="text-sm font-normal text-white">{cp.title}</h3>
-                            <span className="text-[10px] font-mono text-[#F4AE52]">
-                              +{cp.points} Points // {SUBSYSTEMS_DATA[CHECKPOINT_SUBSYSTEM_MAP[cp.stepNumber]]?.category}
+                      {/* React Bits <SwipeRow /> Container */}
+                      <SwipeRow
+                        actions={rowActions}
+                        direction="left"
+                        actionWidth={88}
+                        height={68}
+                        radius={16}
+                        fullSwipe={false}
+                        actionColor={isAvailable ? '#D4621A' : isApproved ? '#10b981' : '#251306'}
+                        drawerColor="#251306"
+                        rowColor={isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.72)'}
+                        textColor="#251306"
+                        className={`transition-all duration-200 shadow-sm border ${
+                          isSelected
+                            ? 'border-[#D4621A] ring-2 ring-[#D4621A]/20 shadow-md scale-[1.01]'
+                            : isApproved
+                            ? 'border-emerald-500/40 hover:border-emerald-500/70'
+                            : isPending
+                            ? 'border-[#F4AE52] hover:border-[#D4621A]'
+                            : isAvailable
+                            ? 'border-[#F4AE52]/70 hover:border-[#D4621A]'
+                            : 'border-[#251306]/10 opacity-60'
+                        }`}
+                      >
+                        <div className="w-full h-full px-4 flex items-center justify-between gap-3">
+                          {/* Left: SpringCheck + Code + Title */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* React Bits <SpringCheck /> component */}
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0 flex items-center"
+                            >
+                              <SpringCheck
+                                label=""
+                                checked={isApproved}
+                                disabled={true}
+                                color="#251306"
+                                fillColor="#10b981"
+                                checkColor="#ffffff"
+                                boxSize={22}
+                                boxRadius={7}
+                                bounce={0.25}
+                              />
+                            </div>
+
+                            {/* Checkpoint Code Pill */}
+                            <span className="w-12 py-1 rounded-md bg-[#251306] text-[#FEF3E2] font-mono text-[11px] font-bold text-center shrink-0 border border-[#F4AE52]/40">
+                              {cp.code}
                             </span>
+
+                            {/* Title & Points Category */}
+                            <div className="truncate">
+                              <h3 className="text-xs sm:text-sm font-bold text-[#251306] truncate">
+                                {cp.title}
+                              </h3>
+                              <span className="text-[10px] font-mono text-[#251306]/70 flex items-center gap-1.5">
+                                <strong className="text-[#D4621A]">+{cp.points} pts</strong>
+                                <span>•</span>
+                                <span className="uppercase">{SUBSYSTEMS_DATA[cp.subsystem as SubsystemKey]?.category || 'Hardware'}</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Right: Status Pill */}
+                          <div className="shrink-0">
+                            {isApproved && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                Cleared
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#F4AE52]/25 text-[#92400e] border border-[#F4AE52]">
+                                <Clock className="w-3 h-3 text-[#D4621A] animate-spin" />
+                                In Review
+                              </span>
+                            )}
+                            {isAvailable && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#D4621A] text-[#FEF3E2] shadow-sm">
+                                Active Step
+                              </span>
+                            )}
+                            {isLocked && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-[#251306]/40 bg-[#251306]/5">
+                                <Lock className="w-3 h-3" />
+                                Locked
+                              </span>
+                            )}
                           </div>
                         </div>
+                      </SwipeRow>
 
-                        {/* Status Pills */}
-                        <div>
-                          {isApproved && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                              <CheckCircle2 className="w-3 h-3" /> Approved
-                            </span>
-                          )}
-                          {isPending && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-[#F4AE52]/20 text-[#F4AE52] border border-[#F4AE52]/40">
-                              <Clock className="w-3 h-3 animate-pulse" /> In Review
-                            </span>
-                          )}
-                          {isAvailable && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-[#D4621A]/20 text-[#D4621A] border border-[#D4621A]/40">
-                              Active Milestone
-                            </span>
-                          )}
-                          {isLocked && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-white/5 text-white/40">
-                              <Lock className="w-3 h-3" /> Locked
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Expanded Section on Active / Selected Card */}
+                      {/* Expanded Detail Drawer when Selected */}
                       {isSelected && (
-                        <div className="mt-3 pt-3 border-t border-white/10 text-xs text-[#FEF3E2]/80 space-y-3">
-                          <p className="leading-relaxed">{cp.description}</p>
+                        <div className="mt-2 mb-3 p-4 rounded-xl bg-white/80 backdrop-blur-md border border-[#F4AE52]/50 shadow-sm text-xs text-[#251306]/80 space-y-3 animate-fadeIn">
+                          <p className="leading-relaxed font-sans text-[#251306]">
+                            {cp.description}
+                          </p>
 
-                          {/* Action Button: Apply for Review (in #D4621A Orange, per DESIGN.md) */}
-                          {isAvailable && (
-                            <div className="flex justify-end pt-1">
+                          <div className="flex items-center justify-between pt-2 border-t border-[#F4AE52]/20">
+                            <span className="text-[10px] font-mono text-[#251306]/60">
+                              Subsystem: <strong className="text-[#251306] uppercase">{cp.subsystem}</strong>
+                            </span>
+
+                            {/* Direct Action Button in Vibrant Terracotta #D4621A */}
+                            {isAvailable && (
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -310,19 +448,27 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
                                   handleApplyReview(cp.id);
                                 }}
                                 disabled={submittingReview}
-                                className="px-5 py-2.5 rounded-xl bg-[#D4621A] hover:bg-[#F4AE52] text-[#FEF3E2] hover:text-[#2A1A0E] text-xs font-normal tracking-tight flex items-center gap-2 shadow-lg transition-all disabled:opacity-50"
+                                className="px-5 py-2 rounded-xl bg-[#D4621A] hover:bg-[#b84e0e] text-[#FEF3E2] text-xs font-semibold flex items-center gap-2 shadow-md transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-95"
                               >
                                 <Send className="w-3.5 h-3.5" />
-                                <span>{submittingReview ? 'Dispatching...' : 'Apply for Review'}</span>
+                                <span>{submittingReview ? 'Dispatching Ticket...' : 'Apply for Physical Review'}</span>
                               </button>
-                            </div>
-                          )}
+                            )}
 
-                          {isPending && (
-                            <p className="text-[11px] font-mono text-[#F4AE52] italic">
-                              * Ticket sent to Tech Admin. Please keep boat hardware accessible at Table 1.
-                            </p>
-                          )}
+                            {isPending && (
+                              <span className="text-[11px] font-mono text-[#D4621A] font-semibold flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 animate-spin" />
+                                Review ticket active on Admin queue
+                              </span>
+                            )}
+
+                            {isApproved && (
+                              <span className="text-[11px] font-mono text-emerald-700 font-semibold flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                Milestone verified & +{cp.points} pts added
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -330,134 +476,114 @@ export const ParticipantDashboard: React.FC<ParticipantDashboardProps> = ({
                 })}
               </div>
             </>
-          ) : (
-            /* Quizzes Tab Content */
-            <div className="space-y-4">
-              {activeQuiz ? (
-                /* MCQ Option Bars matching the 4 stacked horizontal pill bars from image_da50de.png! */
-                <div className="space-y-3">
-                  <div className="mb-2">
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4AE52]">
-                      Question {currentQuestionIdx + 1}
-                    </span>
-                    <h3 className="text-base font-normal text-white mt-1 leading-snug">
-                      {activeQuiz.questions[currentQuestionIdx].question}
-                    </h3>
-                  </div>
+          ) : activeQuiz ? (
+            /* Quiz Active Questions Card */
+            <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-[#F4AE52]/40 shadow-sm space-y-5">
+              <div>
+                <span className="text-[10px] font-mono uppercase text-[#D4621A] font-bold">
+                  Question {currentQuestionIdx + 1} of {activeQuiz.questions.length}
+                </span>
+                <h3 className="text-base sm:text-lg font-bold text-[#251306] mt-1">
+                  {activeQuiz.questions[currentQuestionIdx].question}
+                </h3>
+              </div>
 
-                  {activeQuiz.questions[currentQuestionIdx].options.map((opt, optIdx) => {
-                    const isSelected =
-                      quizAnswers[activeQuiz.questions[currentQuestionIdx].id] === optIdx;
-
-                    return (
-                      <div
-                        key={optIdx}
-                        onClick={() =>
-                          setQuizAnswers((prev) => ({
-                            ...prev,
-                            [activeQuiz.questions[currentQuestionIdx].id]: optIdx,
-                          }))
-                        }
-                        className={`cursor-pointer p-4 rounded-2xl border transition-all flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-[#D4621A] border-[#F4AE52] text-[#FEF3E2] shadow-lg'
-                            : 'bg-[rgba(42,26,14,0.8)] border-[rgba(254,243,226,0.14)] text-[#FEF3E2]/80 hover:border-[#F4AE52]/50 hover:bg-[rgba(42,26,14,0.95)]'
+              <div className="space-y-2.5">
+                {activeQuiz.questions[currentQuestionIdx].options.map((opt, optIdx) => {
+                  const qId = activeQuiz.questions[currentQuestionIdx].id;
+                  const isChosen = quizAnswers[qId] === optIdx;
+                  return (
+                    <button
+                      key={optIdx}
+                      type="button"
+                      onClick={() => handleSelectOption(qId, optIdx)}
+                      className={`w-full text-left p-3.5 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-center justify-between ${
+                        isChosen
+                          ? 'border-[#D4621A] bg-[#D4621A]/10 text-[#D4621A] font-bold shadow-sm'
+                          : 'border-[#F4AE52]/40 bg-white/70 hover:bg-white text-[#251306]'
+                      }`}
+                    >
+                      <span>{opt}</span>
+                      <span
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
+                          isChosen ? 'border-[#D4621A] bg-[#D4621A] text-white' : 'border-[#251306]/30'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-xs ${
-                              isSelected ? 'bg-white text-[#2A1A0E] font-bold' : 'bg-[#3D2414] text-[#F4AE52]'
-                            }`}
-                          >
-                            {String.fromCharCode(65 + optIdx)}
-                          </span>
-                          <span className="text-xs sm:text-sm">{opt}</span>
-                        </div>
-                        {isSelected && <span className="font-bold text-sm">✓</span>}
-                      </div>
-                    );
-                  })}
-
-                  {/* Navigation in Quiz */}
-                  <div className="flex items-center justify-between pt-4">
-                    <button
-                      type="button"
-                      disabled={currentQuestionIdx === 0}
-                      onClick={() => setCurrentQuestionIdx((p) => Math.max(0, p - 1))}
-                      className="px-4 py-2 rounded-xl text-xs font-mono text-white/60 hover:text-white disabled:opacity-30"
-                    >
-                      ← Previous
-                    </button>
-
-                    {currentQuestionIdx < activeQuiz.questions.length - 1 ? (
-                      <button
-                        type="button"
-                        onClick={() => setCurrentQuestionIdx((p) => p + 1)}
-                        className="px-5 py-2.5 rounded-xl bg-[#F4AE52] text-[#2A1A0E] text-xs font-normal tracking-tight flex items-center gap-1.5 shadow-md"
-                      >
-                        <span>Next Question</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleQuizFinalSubmit}
-                        disabled={quizSubmitting}
-                        className="px-6 py-2.5 rounded-xl bg-[#D4621A] text-white text-xs font-normal tracking-tight flex items-center gap-2 shadow-lg disabled:opacity-50"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>{quizSubmitting ? 'Submitting...' : 'Submit Final Answers'}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                /* Launch Cards for Quiz 1 & 2 */
-                <div className="space-y-4">
-                  <div className="p-6 rounded-2xl border border-[rgba(254,243,226,0.16)] bg-[rgba(42,26,14,0.85)] shadow-xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-[#D4621A]/20 text-[#D4621A] border border-[#D4621A]/40">
-                        Round 1 Elimination
+                        {isChosen ? '✓' : ''}
                       </span>
-                      <span className="text-xs font-mono text-[#F4AE52]">100 Points</span>
-                    </div>
-                    <h3 className="text-lg font-normal text-white">Quiz 1: Marine Electronics & Hydrodynamics</h3>
-                    <p className="text-xs text-[#FEF3E2]/75 mt-1 leading-relaxed">
-                      Timed technical qualifier. Only the Top 50 teams advance to the hardware checkpoints round.
-                    </p>
-                    <button
-                      onClick={() => handleStartQuiz('quiz-1')}
-                      className="mt-4 w-full py-3 rounded-xl bg-[#D4621A] hover:bg-[#F4AE52] text-[#FEF3E2] hover:text-[#2A1A0E] text-xs font-normal tracking-tight flex items-center justify-center gap-2 transition-all shadow-md"
-                    >
-                      <Play className="w-4 h-4" />
-                      <span>Start Round 1 Quiz (10 Mins)</span>
                     </button>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  <div className="p-6 rounded-2xl border border-[rgba(254,243,226,0.16)] bg-[rgba(42,26,14,0.85)] shadow-xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-[#F4AE52]/20 text-[#F4AE52] border border-[#F4AE52]/40">
-                        Round 3 Component Sprint
-                      </span>
-                      <span className="text-xs font-mono text-[#F4AE52]">50 Points</span>
-                    </div>
-                    <h3 className="text-lg font-normal text-white">Quiz 2: Component Allocation</h3>
-                    <p className="text-xs text-[#FEF3E2]/75 mt-1 leading-relaxed">
-                      Mid-event technical sprint to earn bonus high-discharge LiPos and telemetry hardware modules.
-                    </p>
-                    <button
-                      onClick={() => handleStartQuiz('quiz-2')}
-                      className="mt-4 w-full py-3 rounded-xl bg-[#F4AE52] hover:bg-[#D4621A] text-[#2A1A0E] hover:text-[#FEF3E2] text-xs font-normal tracking-tight flex items-center justify-center gap-2 transition-all shadow-md"
-                    >
-                      <Play className="w-4 h-4" />
-                      <span>Start Component Quiz (5 Mins)</span>
-                    </button>
-                  </div>
+              <div className="flex items-center justify-between pt-4 border-t border-[#F4AE52]/30">
+                <button
+                  type="button"
+                  disabled={currentQuestionIdx === 0}
+                  onClick={() => setCurrentQuestionIdx((p) => Math.max(0, p - 1))}
+                  className="px-4 py-2 rounded-xl border border-[#F4AE52]/50 text-xs font-mono text-[#251306] disabled:opacity-30"
+                >
+                  Previous
+                </button>
+
+                {currentQuestionIdx < activeQuiz.questions.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentQuestionIdx((p) => p + 1)}
+                    className="px-5 py-2 rounded-xl bg-[#251306] text-[#FEF3E2] text-xs font-mono font-bold hover:bg-[#3D2414] transition-all"
+                  >
+                    Next Question
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={quizSubmitting}
+                    onClick={handleQuizFinalSubmit}
+                    className="px-6 py-2 rounded-xl bg-[#D4621A] text-[#FEF3E2] text-xs font-bold hover:bg-[#b84e0e] shadow-md transition-all"
+                  >
+                    {quizSubmitting ? 'Grading...' : 'Submit Answers'}
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Quiz Completed Banner or Instructions */
+            <div className="p-6 rounded-2xl bg-white/70 border border-[#F4AE52]/40 shadow-sm space-y-4">
+              <h3 className="text-base font-bold text-[#251306]">Quiz Engine Rules</h3>
+              <ul className="text-xs font-mono text-[#251306]/80 space-y-2 list-disc list-inside">
+                <li>Round 1: 10-minute timed quiz. Only Top 50 teams qualify for Round 2.</li>
+                <li>Round 3: Component allocation challenge for supplemental hardware.</li>
+                <li>Answers are auto-evaluated and broadcast live to the Leaderboard.</li>
+              </ul>
+              {quizResultNotice && (
+                <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-900 text-xs font-mono">
+                  {quizResultNotice}
                 </div>
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Bottom Telemetry Bar */}
+      <div className="max-w-7xl mx-auto w-full mt-6 pt-3 border-t border-[#F4AE52]/30 flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-[#251306]/70">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-bold text-[#251306]">ROBOTHON 3.0 // HARDWARE BENCH</span>
+          <span>•</span>
+          <span>Table 01 Active</span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <span>
+            Active Subsystem: <strong className="text-[#D4621A] uppercase">{activeSubsystem}</strong>
+          </span>
+          <span>•</span>
+          <span>
+            Overall Rank: <strong className="text-[#251306]">#{team?.rank || 1}</strong>
+          </span>
+          <span>•</span>
+          <span className="text-emerald-700 font-bold">Top 50 Qualified</span>
         </div>
       </div>
     </div>

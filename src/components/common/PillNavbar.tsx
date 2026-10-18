@@ -35,8 +35,8 @@ export const PillNavbar: React.FC<PillNavbarProps> = ({
       <div
         className="max-w-7xl mx-auto rounded-full flex items-center justify-between px-4 sm:px-6 py-2.5 shadow-2xl backdrop-blur-md transition-all"
         style={{
-          backgroundColor: 'rgba(42, 26, 14, 0.92)',
-          border: '1.5px solid rgba(254, 243, 226, 0.16)',
+          backgroundColor: 'rgba(37, 19, 6, 0.96)',
+          border: '1.5px solid rgba(244, 174, 82, 0.4)',
         }}
       >
         {/* Left: Geometric Monogram Icon (N / Robothon) */}

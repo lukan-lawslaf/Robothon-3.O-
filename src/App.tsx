@@ -37,7 +37,7 @@ const AppContent: React.FC = () => {
   const isFullScreenView = location.pathname === '/' || location.pathname === '/splash' || location.pathname === '/login';
 
   return (
-    <div className="min-h-screen bg-[#2A1A0E] text-[#FEF3E2] flex flex-col font-sans selection:bg-[#D4621A] selection:text-[#FEF3E2]">
+    <div className="min-h-screen bg-[#FEF3E2] text-[#251306] flex flex-col font-sans selection:bg-[#D4621A] selection:text-[#FEF3E2]">
       {!isFullScreenView && (
         <PillNavbar
           currentRole={currentRole}

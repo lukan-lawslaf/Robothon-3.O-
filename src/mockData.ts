@@ -14,8 +14,10 @@ export interface MockTeam {
 
 export interface MockCheckpoint {
   id: string;
+  code: string;
   stepNumber: number;
   title: string;
+  subsystem: 'motors' | 'l298n' | 'wires' | 'esp32' | 'battery' | 'chassis' | 'wheels';
   description: string;
   points: number;
   status: CheckpointStatus;
@@ -185,69 +187,85 @@ export const INITIAL_TEAMS: MockTeam[] = [
   },
 ];
 
+export const checkpoints = [
+  { id: 1, code: "CP 01", title: "Motor Mounting & Connection", subsystem: "motors", points: 100 },
+  { id: 2, code: "CP 02", title: "L298N Motor Driver Setup", subsystem: "l298n", points: 100 },
+  { id: 3, code: "CP 03", title: "ESP32 Logic Wiring", subsystem: "wires", points: 100 },
+  { id: 4, code: "CP 04", title: "Firmware & Code Push", subsystem: "esp32", points: 100 },
+  { id: 5, code: "CP 05", title: "3S Battery Power Integration", subsystem: "battery", points: 100 },
+  { id: 6, code: "CP 06", title: "Wi-Fi / BLE Pairing", subsystem: "esp32", points: 100 },
+  { id: 7, code: "CP 07", title: "Polarity Check & Maiden Run", subsystem: "chassis", points: 200 }
+];
+
 export const INITIAL_CHECKPOINTS: MockCheckpoint[] = [
   {
     id: 'cp-1',
+    code: 'CP 01',
     stepNumber: 1,
-    title: 'Hull Base & Keel Assembly',
-    description: 'Assemble the boat hull structural ribs, ensuring watertight keel alignment and center balance.',
-    points: 50,
+    title: 'Motor Mounting & Connection',
+    subsystem: 'motors',
+    description: 'Mount 4x GA25 DC geared motors to chassis brackets and secure 12mm hex couplers.',
+    points: 100,
     status: 'approved',
   },
   {
     id: 'cp-2',
+    code: 'CP 02',
     stepNumber: 2,
-    title: 'Motor & Thruster Mounting',
-    description: 'Mount underwater thruster brackets with vibration dampeners and secure drive shaft coupling.',
-    points: 75,
+    title: 'L298N Motor Driver Setup',
+    subsystem: 'l298n',
+    description: 'Fasten L298N dual H-bridge driver with brass standoffs, connect motor terminals to OUT1-OUT4.',
+    points: 100,
     status: 'approved',
   },
   {
     id: 'cp-3',
+    code: 'CP 03',
     stepNumber: 3,
-    title: 'ESC & Signal Wiring',
-    description: 'Route PWM control lines from microcontroller to ESCs with proper heat shrink and wire strain relief.',
-    points: 75,
+    title: 'ESP32 Logic Wiring',
+    subsystem: 'wires',
+    description: 'Route PWM control lines from microcontroller GPIO to IN1-IN4 with common ground rail.',
+    points: 100,
     status: 'available',
   },
   {
     id: 'cp-4',
+    code: 'CP 04',
     stepNumber: 4,
-    title: 'Waterproof Chamber Sealing',
-    description: 'Install silicone rubber gaskets on electronics compartment and test hermetic seal integrity.',
+    title: 'Firmware & Code Push',
+    subsystem: 'esp32',
+    description: 'Flash motor PWM control firmware and hardware timer configuration via ESP-IDF/Arduino.',
     points: 100,
     status: 'locked',
   },
   {
     id: 'cp-5',
+    code: 'CP 05',
     stepNumber: 5,
-    title: 'Power Distribution & Fuse Safety',
-    description: 'Integrate emergency mechanical kill switch and fused XT60 power distribution circuit.',
-    points: 75,
+    title: '3S Battery Power Integration',
+    subsystem: 'battery',
+    description: 'Connect 11.1V 3S Li-Ion pack through XT60 connector with fused kill-switch safety.',
+    points: 100,
     status: 'locked',
   },
   {
     id: 'cp-6',
+    code: 'CP 06',
     stepNumber: 6,
-    title: 'Radio Telemetry & Failsafe Link',
-    description: 'Bind 2.4GHz receiver, calibrate failsafe throttle cutoff, and verify telemetry signal health.',
+    title: 'Wi-Fi / BLE Pairing',
+    subsystem: 'esp32',
+    description: 'Verify AP handshake, telemetry ping latency (<20ms), and remote packet health.',
     points: 100,
     status: 'locked',
   },
   {
     id: 'cp-7',
+    code: 'CP 07',
     stepNumber: 7,
-    title: 'Pool Buoyancy & Float Test',
-    description: 'Static flotation verification in testing pool. Ensure waterline clearance and zero list/trim tilt.',
-    points: 125,
-    status: 'locked',
-  },
-  {
-    id: 'cp-8',
-    stepNumber: 8,
-    title: 'Maneuverability & Speed Trial',
-    description: 'Demonstrate remote controlled slalom navigation, forward propulsion burst, and reverse recovery.',
-    points: 150,
+    title: 'Polarity Check & Maiden Run',
+    subsystem: 'chassis',
+    description: 'Verify motor rotation polarity, chassis structural balance, and perform maiden trial run.',
+    points: 200,
     status: 'locked',
   },
 ];

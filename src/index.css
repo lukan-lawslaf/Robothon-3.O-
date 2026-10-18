@@ -4,16 +4,18 @@
 
 :root {
   --bg-cream: #FEF3E2;
+  --bg-cream-card: rgba(254, 243, 226, 0.88);
   --accent-amber: #F4AE52;
   --accent-orange: #D4621A;
-  --surface-espresso: #2A1A0E;
-  --border-subtle: rgba(254, 243, 226, 0.14);
+  --surface-espresso: #251306;
+  --surface-espresso-card: rgba(37, 19, 6, 0.94);
+  --border-subtle: rgba(244, 174, 82, 0.28);
 }
 
 @layer base {
   body {
-    background-color: var(--surface-espresso);
-    color: var(--bg-cream);
+    background-color: var(--bg-cream);
+    color: var(--surface-espresso);
     font-family: 'Space Grotesk', -apple-system, sans-serif;
     font-weight: 400;
   }

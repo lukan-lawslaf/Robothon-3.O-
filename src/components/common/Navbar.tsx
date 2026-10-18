@@ -8,7 +8,7 @@ import {
   ChevronDown,
   RotateCcw,
   LogOut,
-  Anchor,
+  Cpu,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -48,64 +48,64 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isCurrent = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800 shadow-md">
+    <nav className="sticky top-0 z-50 bg-[#FEF3E2]/95 backdrop-blur-md border-b border-[#F4AE52]/30 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Platform Name */}
-          <Link to="/leaderboard" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <Anchor className="w-5 h-5" />
+          <Link to="/leaderboard" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-xl bg-[#251306] flex items-center justify-center text-[#FEF3E2] shadow-md border border-[#F4AE52]/40 group-hover:scale-105 transition-transform">
+              <Cpu className="w-5 h-5 text-[#F4AE52]" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-white tracking-tight text-base sm:text-lg">
+                <span className="font-bold text-[#251306] tracking-tight text-base sm:text-lg">
                   ROBOTHON
                 </span>
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-[#D4621A] text-[#FEF3E2]">
                   3.O
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 hidden sm:block">
-                Event Management & Live Scoring
+              <p className="text-[10px] font-mono text-[#251306]/60 hidden sm:block">
+                Hardware Engineering & Live Scoring
               </p>
             </div>
           </Link>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center gap-1">
-            <Link
-              to="/leaderboard"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isCurrent('/leaderboard')
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Trophy className="w-4 h-4 text-amber-400" />
-              Live Leaderboard
-            </Link>
-
+          {/* Navigation Pill Links (Espresso & Cream Styling) */}
+          <div className="hidden md:flex items-center gap-1.5 bg-[#251306] p-1 rounded-full border border-[#F4AE52]/40 shadow-inner">
             <Link
               to="/team-dashboard"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
                 isCurrent('/team-dashboard')
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-[#D4621A] text-[#FEF3E2] shadow-md font-semibold'
+                  : 'text-[#FEF3E2]/80 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Users className="w-4 h-4 text-cyan-400" />
+              <Users className="w-3.5 h-3.5 text-[#F4AE52]" />
               Participant Portal
             </Link>
 
             <Link
-              to="/admin-dashboard"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isCurrent('/admin-dashboard')
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              to="/leaderboard"
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                isCurrent('/leaderboard')
+                  ? 'bg-[#D4621A] text-[#FEF3E2] shadow-md font-semibold'
+                  : 'text-[#FEF3E2]/80 hover:text-white hover:bg-white/10'
               }`}
             >
-              <ShieldCheck className="w-4 h-4 text-amber-400" />
+              <Trophy className="w-3.5 h-3.5 text-[#F4AE52]" />
+              Leaderboard
+            </Link>
+
+            <Link
+              to="/admin-dashboard"
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                isCurrent('/admin-dashboard')
+                  ? 'bg-[#D4621A] text-[#FEF3E2] shadow-md font-semibold'
+                  : 'text-[#FEF3E2]/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#F4AE52]" />
               Admin Portal
             </Link>
           </div>
@@ -117,52 +117,52 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 hover:bg-slate-700 transition-colors shadow-sm"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/80 border border-[#F4AE52]/50 text-xs font-medium text-[#251306] hover:bg-white transition-colors shadow-sm"
               >
-                <span className="text-[10px] uppercase font-bold text-slate-400">Role:</span>
-                <span className="font-semibold text-white capitalize">
+                <span className="text-[10px] uppercase font-mono font-bold text-[#251306]/50">Role:</span>
+                <span className="font-semibold capitalize text-[#D4621A]">
                   {currentRole === 'participant' ? 'Participant' : currentRole === 'admin' ? 'Tech Admin' : 'Public'}
                 </span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#251306]/50" />
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl py-1.5 z-50">
-                  <div className="px-3 py-1.5 border-b border-slate-700/80 text-[10px] uppercase font-bold text-slate-400">
+                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#251306] border border-[#F4AE52]/40 shadow-2xl py-1.5 z-50 text-[#FEF3E2]">
+                  <div className="px-3.5 py-1.5 border-b border-white/10 text-[10px] uppercase font-mono font-bold text-[#F4AE52]">
                     Quick Dev Role Switcher
                   </div>
 
                   <button
-                    onClick={() => handleRoleSelect('public')}
-                    className="w-full text-left px-3.5 py-2 text-xs text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+                    onClick={() => handleRoleSelect('participant')}
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-white/10 flex items-center justify-between transition-colors"
                   >
                     <span className="flex items-center gap-2">
-                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                      Public Leaderboard
+                      <Users className="w-3.5 h-3.5 text-[#F4AE52]" />
+                      Participant (AquaPulse)
                     </span>
-                    {currentRole === 'public' && <span className="text-blue-400 font-bold">✓</span>}
+                    {currentRole === 'participant' && <span className="text-[#D4621A] font-bold">✓</span>}
                   </button>
 
                   <button
-                    onClick={() => handleRoleSelect('participant')}
-                    className="w-full text-left px-3.5 py-2 text-xs text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+                    onClick={() => handleRoleSelect('public')}
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-white/10 flex items-center justify-between transition-colors"
                   >
                     <span className="flex items-center gap-2">
-                      <Users className="w-3.5 h-3.5 text-cyan-400" />
-                      Participant (AquaPulse)
+                      <Trophy className="w-3.5 h-3.5 text-[#F4AE52]" />
+                      Public Leaderboard
                     </span>
-                    {currentRole === 'participant' && <span className="text-blue-400 font-bold">✓</span>}
+                    {currentRole === 'public' && <span className="text-[#D4621A] font-bold">✓</span>}
                   </button>
 
                   <button
                     onClick={() => handleRoleSelect('admin')}
-                    className="w-full text-left px-3.5 py-2 text-xs text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-white/10 flex items-center justify-between transition-colors"
                   >
                     <span className="flex items-center gap-2">
-                      <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#F4AE52]" />
                       Tech Team Admin
                     </span>
-                    {currentRole === 'admin' && <span className="text-blue-400 font-bold">✓</span>}
+                    {currentRole === 'admin' && <span className="text-[#D4621A] font-bold">✓</span>}
                   </button>
                 </div>
               )}
@@ -172,7 +172,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={handleReset}
               title="Reset state to initial mock data"
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-[#251306]/70 hover:text-[#D4621A] hover:bg-white/60 border border-transparent hover:border-[#F4AE52]/40 transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -181,7 +181,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Link
               to="/login"
               title="Go to Dual Login"
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-[#251306]/70 hover:text-[#D4621A] hover:bg-white/60 border border-transparent hover:border-[#F4AE52]/40 transition-colors"
             >
               <LogOut className="w-4 h-4" />
             </Link>

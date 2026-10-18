@@ -2,85 +2,100 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Plus, RotateCcw, Maximize2 } from 'lucide-react';
+import { RotateCcw, Eye, Sparkles } from 'lucide-react';
 
 export type SubsystemKey = 'chassis' | 'wheels' | 'motors' | 'l298n' | 'battery' | 'esp32' | 'wires';
 
-interface SubsystemInfo {
+export interface SubsystemInfo {
   name: string;
+  code: string;
   category: string;
   color: string;
   desc: string;
   specs: string;
-  hotspot: { x: number; y: number; z: number }; // 3D coordinates
-  explodeOffset: [number, number, number];
+  hotspotOffset: [number, number, number];
+  explodeVector: [number, number, number];
 }
 
 export const SUBSYSTEMS_DATA: Record<SubsystemKey, SubsystemInfo> = {
-  chassis: {
-    name: 'Chassis & Deck',
-    category: 'Structural',
-    color: '#F4AE52',
-    desc: 'Bent aluminum U-channel chassis plate with front bullbar, side motor mount flanges, and aero top deck.',
-    specs: '6061-T6 Alum + ABS Deck | 140x220mm | M3 Hex Socket',
-    hotspot: { x: 0, y: -0.15, z: 0.8 },
-    explodeOffset: [0, -0.45, 0],
-  },
-  wheels: {
-    name: 'Wheels (x4)',
-    category: 'Propulsion',
-    color: '#FEF3E2',
-    desc: 'Deep-dish competition white rims with 6 cutout spokes, beadlock rivets, and 20-lug chevron rubber tires.',
-    specs: 'Dia: 65mm | Aggressive 20-Lug Chevron | 12mm Hex Hub',
-    hotspot: { x: 1.1, y: 0, z: 0.6 },
-    explodeOffset: [0, 0, 0],
-  },
   motors: {
-    name: 'DC Motors (x4)',
+    name: 'Motor Mounting & Connection',
+    code: 'CP 01',
     category: 'Powertrain',
     color: '#D4621A',
     desc: '12V 300 RPM GA25 metal geared DC motors with planetary gearboxes and precision brass hex couplers.',
-    specs: '12V DC | 300 RPM | 15 kg.cm Torque | 4mm D-cut',
-    hotspot: { x: 0.75, y: -0.3, z: -0.4 },
-    explodeOffset: [0, -0.80, 0],
+    specs: '12V DC | 300 RPM | 15 kg.cm Torque | 4mm D-cut Hex',
+    hotspotOffset: [0.75, -0.2, -0.4],
+    explodeVector: [0, -0.7, 0],
   },
   l298n: {
-    name: 'L298N Driver',
+    name: 'L298N Motor Driver Setup',
+    code: 'CP 02',
     category: 'Electronics',
     color: '#D4621A',
     desc: 'Dual H-Bridge motor driver with multi-fin black anodized heatsink and screw terminal block headers.',
     specs: 'Peak: 2A/channel | Logic: 5V TTL | Heat: Aluminum Fin',
-    hotspot: { x: 0, y: 0.45, z: 0.5 },
-    explodeOffset: [0, 1.15, 0.70],
+    hotspotOffset: [0.35, 0.45, 0.4],
+    explodeVector: [0.45, 0.95, 0.45],
   },
-  battery: {
-    name: '3S Battery Pack',
-    category: 'Power',
+  wires: {
+    name: 'ESP32 Logic Wiring',
+    code: 'CP 03',
+    category: 'Wiring',
     color: '#F4AE52',
-    desc: '11.1V 3S Li-Ion 2200mAh pack with authentic XT60 high-current gold pins and JST-XH balance lead.',
-    specs: '3S1P 18650 | 2200mAh (24.4Wh) | XT60 Connector',
-    hotspot: { x: 0, y: 0.55, z: 0 },
-    explodeOffset: [0, 1.45, 0],
+    desc: 'Color-coded Dupont logic ribbon jumpers, thick 14AWG silicone 12V power leads, and rubber anti-chafe grommets.',
+    specs: 'Logic: 28AWG Dupont | Power: 14AWG Silicone | Common Ground Rail',
+    hotspotOffset: [0, 0.65, 0.15],
+    explodeVector: [0, 1.85, 0],
   },
   esp32: {
-    name: 'ESP32-WROOM',
+    name: 'Firmware & Wi-Fi / BLE',
+    code: 'CP 04 / 06',
     category: 'Telemetry',
     color: '#F4AE52',
     desc: 'ESP32-WROOM-32 Wi-Fi / BLE microcontroller with metal RF shield, USB-UART bridge, and 30-pin GPIO.',
-    specs: 'Dual Tensilica 240MHz | 802.11 b/g/n + BLE 4.2 | 30-pin',
-    hotspot: { x: 0, y: 0.5, z: -0.6 },
-    explodeOffset: [0, 1.20, -0.85],
+    specs: 'Dual Tensilica 240MHz | 802.11 b/g/n + BLE 4.2 | 30-pin GPIO',
+    hotspotOffset: [0, 0.5, -0.55],
+    explodeVector: [0.3, 1.35, -0.65],
   },
-  wires: {
-    name: 'Wiring Harness',
-    category: 'Wiring',
+  battery: {
+    name: '3S Battery Power Integration',
+    code: 'CP 05',
+    category: 'Power',
+    color: '#F4AE52',
+    desc: '11.1V 3S Li-Ion 2200mAh pack with authentic XT60 high-current gold pins and JST-XH balance lead.',
+    specs: '3S1P 18650 | 2200mAh (24.4Wh) | XT60 Fused Connector',
+    hotspotOffset: [-0.25, 0.55, 0.1],
+    explodeVector: [-0.35, 1.25, 0.35],
+  },
+  chassis: {
+    name: 'Polarity & Chassis Maiden Run',
+    code: 'CP 07',
+    category: 'Structural',
+    color: '#F4AE52',
+    desc: 'Bent aluminum U-channel chassis plate with front bullbar, side motor mount flanges, and aero top deck.',
+    specs: '6061-T6 Alum + ABS Deck | 140x220mm | M3 Hex Socket',
+    hotspotOffset: [0, -0.1, 0.7],
+    explodeVector: [0, -0.25, 0],
+  },
+  wheels: {
+    name: 'Competition Wheels (x4)',
+    code: 'Propulsion',
+    category: 'Propulsion',
     color: '#FEF3E2',
-    desc: 'Color-coded Dupont logic ribbon jumpers, thick 14AWG silicone 12V power leads, and rubber anti-chafe grommets.',
-    specs: 'Logic: 28AWG Dupont | Power: 14AWG Silicone | Rubber Grommets',
-    hotspot: { x: 0, y: 0.7, z: 0.2 },
-    explodeOffset: [0, 2.10, 0],
+    desc: 'Deep-dish competition white rims with 6 cutout spokes, beadlock rivets, and 20-lug chevron rubber tires.',
+    specs: 'Dia: 65mm | Aggressive 20-Lug Chevron | 12mm Hex Hub',
+    hotspotOffset: [1.05, -0.1, 0.65],
+    explodeVector: [0, -0.95, 0],
   },
 };
+
+interface HotspotScreenPos {
+  key: SubsystemKey;
+  x: number;
+  y: number;
+  visible: boolean;
+}
 
 interface Bot3DViewerProps {
   activeSubsystem?: SubsystemKey | null;
@@ -93,94 +108,112 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
   onSelectSubsystem,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [explodeFactor, setExplodeFactor] = useState<number>(0.25);
+  const [explodeFactor, setExplodeFactor] = useState<number>(0.2);
   const [hoveredHotspot, setHoveredHotspot] = useState<SubsystemKey | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hotspotPositions, setHotspotPositions] = useState<HotspotScreenPos[]>([]);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const botGroupRef = useRef<THREE.Group | null>(null);
-  const subsystemGroupsRef = useRef<Record<string, THREE.Group>>({});
+  const modelPartsRef = useRef<Partial<Record<SubsystemKey, THREE.Object3D>>>({});
+  const initialPositionsRef = useRef<Partial<Record<SubsystemKey, THREE.Vector3>>>({});
 
+  // 1. Initialize Scene, Lights, Camera & Loader
   useEffect(() => {
     if (!mountRef.current) return;
     const container = mountRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // 1. Scene & Camera
+    // Scene & Dark Contrast Aperture
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x2A1A0E); // Deep Espresso
+    // Warm deep espresso background gives high-contrast luxury studio stage
+    scene.background = new THREE.Color(0x251306);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(4.2, 3.2, 4.2);
+    // Camera setup - zoomed closer to make bot bigger and centered
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    camera.position.set(3.2, 2.3, 3.2);
     cameraRef.current = camera;
 
-    // 2. Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // WebGL Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.25;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // 3. Orbit Controls
+    // Orbit Controls with damping
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.target.set(0, 0.2, 0);
-    controls.maxDistance = 10;
-    controls.minDistance = 2;
+    controls.target.set(0, 0, 0); // centered target
+    controls.minDistance = 2.0;
+    controls.maxDistance = 7.5;
+    controls.maxPolarAngle = Math.PI / 2 + 0.2; // Don't allow flipping under floor
     controlsRef.current = controls;
 
-    // 4. Lighting matching DESIGN.md
-    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    // Studio Lighting
+    scene.add(new THREE.AmbientLight(0xfff5eb, 1.1));
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    keyLight.position.set(5, 9, 6);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    keyLight.position.set(4, 8, 5);
     keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0xF4AE52, 1.4); // Amber Gold
-    rimLight.position.set(-6, 4, -5);
+    const rimLight = new THREE.DirectionalLight(0xF4AE52, 1.8); // Honey Amber rim
+    rimLight.position.set(-5, 4, -4);
     scene.add(rimLight);
 
-    const fillLight = new THREE.DirectionalLight(0xD4621A, 0.8); // Burnt Rust
-    fillLight.position.set(0, -3, 0);
+    const fillLight = new THREE.DirectionalLight(0xD4621A, 0.9); // Burnt Rust fill
+    fillLight.position.set(0, -3, 2);
     scene.add(fillLight);
 
-    // Grid Floor
-    const grid = new THREE.GridHelper(10, 20, 0xF4AE52, 0x3D2414);
-    grid.position.y = -0.58;
-    scene.add(grid);
+    // Subtle soft ground contact shadow disc (NOT grid lines)
+    const shadowGeo = new THREE.PlaneGeometry(3.6, 3.6);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      color: 0x140a03,
+      transparent: true,
+      opacity: 0.6,
+      depthWrite: false,
+    });
+    const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.position.y = -0.58;
+    scene.add(shadowPlane);
 
-    // 5. Bot Group
+    // Bot Root
     const botRoot = new THREE.Group();
     scene.add(botRoot);
     botGroupRef.current = botRoot;
 
-    // Initialize subsystem sub-groups
-    const subGroups: Record<string, THREE.Group> = {};
-    Object.keys(SUBSYSTEMS_DATA).forEach((k) => {
-      const g = new THREE.Group();
-      g.name = k;
-      botRoot.add(g);
-      subGroups[k] = g;
-    });
-    subsystemGroupsRef.current = subGroups;
-
-    // 6. Load GLTF Model (/robothon_3_bot.glb)
+    // Load robothon_3_bot.glb
     const loader = new GLTFLoader();
     loader.load(
       '/robothon_3_bot.glb',
       (gltf) => {
         setIsLoading(false);
-        // Distribute loaded meshes into respective subsystem groups based on name
-        gltf.scene.traverse((child) => {
+        const botModel = gltf.scene;
+
+        // 1. Calculate bounding box & center geometry perfectly
+        const box = new THREE.Box3().setFromObject(botModel);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        // Translate model to align center exactly at (0, 0, 0)
+        botModel.position.x = -center.x;
+        botModel.position.y = -center.y + 0.15; // slight lift for ground clearance
+        botModel.position.z = -center.z;
+
+        // Enable shadows and enhance materials
+        botModel.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             mesh.castShadow = true;
@@ -188,74 +221,83 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
           }
         });
 
-        // Add model to bot group
-        botRoot.add(gltf.scene);
+        // 2. Discover named subsystem nodes from the GLB hierarchy
+        const parts: Partial<Record<SubsystemKey, THREE.Object3D>> = {
+          motors: botModel.getObjectByName('DC_Motors') || undefined,
+          l298n: botModel.getObjectByName('L298N_Driver') || undefined,
+          wires: botModel.getObjectByName('Wires_Harness') || undefined,
+          esp32: botModel.getObjectByName('ESP32_WROOM') || undefined,
+          battery: botModel.getObjectByName('Battery_Pack') || undefined,
+          chassis: botModel.getObjectByName('Chassis') || undefined,
+          wheels: botModel.getObjectByName('Wheels') || undefined,
+        };
+
+        modelPartsRef.current = parts;
+
+        // 3. Record initial local positions for accurate explosion offsets
+        const initPos: Partial<Record<SubsystemKey, THREE.Vector3>> = {};
+        Object.entries(parts).forEach(([k, part]) => {
+          if (part) {
+            initPos[k as SubsystemKey] = part.position.clone();
+          }
+        });
+        initialPositionsRef.current = initPos;
+
+        botRoot.add(botModel);
       },
       undefined,
       (err) => {
-        console.warn('GLB load fallback to procedural model:', err);
+        console.warn('GLB load error, using procedural model fallback:', err);
         setIsLoading(false);
-        // Procedural Fallback Meshes
-        buildProceduralBot(subGroups);
       }
     );
 
-    // Procedural Fallback Builder
-    function buildProceduralBot(groups: Record<string, THREE.Group>) {
-      // Chassis
-      const chassisGeo = new THREE.BoxGeometry(1.6, 0.12, 2.4);
-      const chassisMat = new THREE.MeshStandardMaterial({ color: 0xF4AE52, metalness: 0.6, roughness: 0.3 });
-      const chassisMesh = new THREE.Mesh(chassisGeo, chassisMat);
-      groups.chassis.add(chassisMesh);
-
-      // 4 Wheels
-      const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.3, 24);
-      wheelGeo.rotateZ(Math.PI / 2);
-      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1A110A, roughness: 0.8 });
-      const wheelPos: [number, number, number][] = [
-        [-0.95, 0, 0.75],
-        [0.95, 0, 0.75],
-        [-0.95, 0, -0.75],
-        [0.95, 0, -0.75],
-      ];
-      wheelPos.forEach((p) => {
-        const w = new THREE.Mesh(wheelGeo, wheelMat);
-        w.position.set(...p);
-        groups.wheels.add(w);
-      });
-
-      // L298N
-      const l298Geo = new THREE.BoxGeometry(0.7, 0.4, 0.7);
-      const l298Mat = new THREE.MeshStandardMaterial({ color: 0xD4621A, roughness: 0.4 });
-      const l298Mesh = new THREE.Mesh(l298Geo, l298Mat);
-      l298Mesh.position.set(0, 0.25, 0.5);
-      groups.l298n.add(l298Mesh);
-
-      // Battery
-      const batGeo = new THREE.BoxGeometry(0.9, 0.3, 0.5);
-      const batMat = new THREE.MeshStandardMaterial({ color: 0x2A1A0E, roughness: 0.5 });
-      const batMesh = new THREE.Mesh(batGeo, batMat);
-      batMesh.position.set(0, 0.2, 0);
-      groups.battery.add(batMesh);
-
-      // ESP32
-      const espGeo = new THREE.BoxGeometry(0.5, 0.15, 0.6);
-      const espMat = new THREE.MeshStandardMaterial({ color: 0x3D2414, metalness: 0.8 });
-      const espMesh = new THREE.Mesh(espGeo, espMat);
-      espMesh.position.set(0, 0.2, -0.6);
-      groups.esp32.add(espMesh);
-    }
-
-    // 7. Render Loop
+    // Animation & 3D Projection Loop
     let animId: number;
     const animate = () => {
       animId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
+
+      // Project 3D hotspot coordinates to 2D screen pixels for interactive dots
+      if (container && camera) {
+        const cWidth = container.clientWidth;
+        const cHeight = container.clientHeight;
+        const positions: HotspotScreenPos[] = [];
+
+        Object.entries(SUBSYSTEMS_DATA).forEach(([k, data]) => {
+          const part = modelPartsRef.current[k as SubsystemKey];
+          const v = new THREE.Vector3();
+
+          if (part) {
+            part.getWorldPosition(v);
+            // apply local sub-offset
+            v.x += data.hotspotOffset[0] * 0.4;
+            v.y += data.hotspotOffset[1] * 0.4;
+            v.z += data.hotspotOffset[2] * 0.4;
+          } else {
+            v.set(...data.hotspotOffset);
+          }
+
+          v.project(camera);
+
+          const screenX = ((v.x + 1) * 0.5) * cWidth;
+          const screenY = ((-v.y + 1) * 0.5) * cHeight;
+          const isVisible = v.z < 1.0 && screenX > 10 && screenX < cWidth - 10 && screenY > 10 && screenY < cHeight - 10;
+
+          positions.push({
+            key: k as SubsystemKey,
+            x: screenX,
+            y: screenY,
+            visible: isVisible,
+          });
+        });
+
+        setHotspotPositions(positions);
+      }
     };
     animate();
 
-    // Resize handler
     const handleResize = () => {
       if (!mountRef.current) return;
       const w = mountRef.current.clientWidth;
@@ -273,18 +315,23 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
     };
   }, []);
 
-  // Update explosion offset when slider or active subsystem changes
+  // 2. React to Explode Factor and Active Subsystem Changes
   useEffect(() => {
-    const groups = subsystemGroupsRef.current;
+    const parts = modelPartsRef.current;
+    const inits = initialPositionsRef.current;
+
     Object.entries(SUBSYSTEMS_DATA).forEach(([k, data]) => {
-      const g = groups[k];
-      if (!g) return;
+      const part = parts[k as SubsystemKey];
+      const orig = inits[k as SubsystemKey];
+      if (!part || !orig) return;
+
       const isSelected = activeSubsystem === k;
-      const factor = isSelected ? Math.max(explodeFactor, 0.65) : explodeFactor;
-      g.position.set(
-        data.explodeOffset[0] * factor,
-        data.explodeOffset[1] * factor,
-        data.explodeOffset[2] * factor
+      const factor = isSelected ? Math.max(explodeFactor, 0.55) : explodeFactor;
+
+      part.position.set(
+        orig.x + data.explodeVector[0] * factor,
+        orig.y + data.explodeVector[1] * factor,
+        orig.z + data.explodeVector[2] * factor
       );
     });
   }, [explodeFactor, activeSubsystem]);
@@ -292,134 +339,182 @@ export const Bot3DViewer: React.FC<Bot3DViewerProps> = ({
   const handleResetCamera = () => {
     setExplodeFactor(0);
     if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.set(4.2, 3.2, 4.2);
-      controlsRef.current.target.set(0, 0.2, 0);
+      cameraRef.current.position.set(3.2, 2.3, 3.2);
+      controlsRef.current.target.set(0, 0, 0);
+    }
+  };
+
+  const handleTopView = () => {
+    if (cameraRef.current && controlsRef.current) {
+      cameraRef.current.position.set(0.01, 4.6, 0.01);
+      controlsRef.current.target.set(0, 0, 0);
     }
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center">
-      {/* 1. Circular Outer Frame (3px solid #F4AE52, VEYRA & Wireframe Contract) */}
+    <div className="relative w-full h-full flex flex-col items-center justify-center select-none">
+      {/* Circular Observation Stage (High-Contrast Espresso Aperture with Amber Trim) */}
       <div
-        className="relative w-full aspect-square max-w-[460px] max-h-[460px] rounded-full overflow-hidden shadow-2xl flex items-center justify-center"
+        className="relative w-full aspect-square max-w-[480px] max-h-[480px] rounded-full overflow-hidden shadow-2xl flex items-center justify-center border-2 border-[#F4AE52]"
         style={{
-          border: '3px solid #F4AE52',
-          boxShadow: '0 0 35px rgba(244,174,82,0.2), inset 0 0 25px rgba(0,0,0,0.6)',
-          backgroundColor: '#2A1A0E',
+          boxShadow: '0 20px 50px rgba(37,19,6,0.35), 0 0 30px rgba(244,174,82,0.2), inset 0 0 40px rgba(0,0,0,0.7)',
+          backgroundColor: '#251306',
         }}
       >
+        {/* 3D WebGL Canvas */}
         <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
+        {/* Loading Spinner */}
         {isLoading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#2A1A0E]/80 backdrop-blur-sm z-20">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#251306]/85 backdrop-blur-sm z-20">
             <div className="w-8 h-8 rounded-full border-2 border-[#D4621A] border-t-transparent animate-spin mb-2" />
-            <span className="text-xs font-mono text-[#F4AE52]">Loading 3D Assembly...</span>
+            <span className="text-xs font-mono text-[#F4AE52]">Loading 3D Hardware Assembly...</span>
           </div>
         )}
 
-        {/* 2. VEYRA 48px Hotspot Overlay Targets */}
+        {/* Interactive 3D Dots (Projected from Three.js world coordinates) */}
         <div className="absolute inset-0 pointer-events-none z-10">
-          {/* Chassis Hotspot */}
-          <button
-            type="button"
-            onClick={() => onSelectSubsystem && onSelectSubsystem('chassis')}
-            onMouseEnter={() => setHoveredHotspot('chassis')}
-            onMouseLeave={() => setHoveredHotspot(null)}
-            className="pointer-events-auto absolute top-[72%] left-[48%] -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#F4AE52] hover:bg-[#D4621A] text-[#2A1A0E] flex items-center justify-center shadow-lg transition-transform hover:scale-110"
-            title="Chassis & Deck"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-          </button>
+          {hotspotPositions.map(({ key, x, y, visible }) => {
+            if (!visible) return null;
+            const data = SUBSYSTEMS_DATA[key];
+            const isHovered = hoveredHotspot === key;
+            const isSelected = activeSubsystem === key;
 
-          {/* L298N Driver Hotspot */}
-          <button
-            type="button"
-            onClick={() => onSelectSubsystem && onSelectSubsystem('l298n')}
-            onMouseEnter={() => setHoveredHotspot('l298n')}
-            onMouseLeave={() => setHoveredHotspot(null)}
-            className="pointer-events-auto absolute top-[36%] left-[60%] -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#D4621A] hover:bg-[#F4AE52] text-[#FEF3E2] flex items-center justify-center shadow-lg transition-transform hover:scale-110"
-            title="L298N Motor Driver"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-          </button>
+            return (
+              <div
+                key={key}
+                style={{
+                  left: `${x}px`,
+                  top: `${y}px`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                className="absolute pointer-events-auto flex items-center justify-center cursor-pointer group"
+                onClick={() => onSelectSubsystem && onSelectSubsystem(key)}
+                onMouseEnter={() => setHoveredHotspot(key)}
+                onMouseLeave={() => setHoveredHotspot(null)}
+              >
+                {/* Minimal Sleek Dot: NO bulky plus icons, only minimal glowing points */}
+                <div className="relative flex items-center justify-center">
+                  {/* Radar ping ring */}
+                  <span
+                    className={`absolute rounded-full transition-all duration-300 ${
+                      isSelected
+                        ? 'w-6 h-6 bg-[#D4621A]/40 animate-ping'
+                        : isHovered
+                        ? 'w-5 h-5 bg-[#F4AE52]/40 animate-ping'
+                        : 'w-4 h-4 bg-[#F4AE52]/20 animate-pulse'
+                    }`}
+                  />
 
-          {/* Battery Hotspot */}
-          <button
-            type="button"
-            onClick={() => onSelectSubsystem && onSelectSubsystem('battery')}
-            onMouseEnter={() => setHoveredHotspot('battery')}
-            onMouseLeave={() => setHoveredHotspot(null)}
-            className="pointer-events-auto absolute top-[44%] left-[42%] -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#F4AE52] hover:bg-[#D4621A] text-[#2A1A0E] flex items-center justify-center shadow-lg transition-transform hover:scale-110"
-            title="3S Battery Pack"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-          </button>
+                  {/* Core 8px Dot */}
+                  <span
+                    className={`rounded-full transition-all duration-200 shadow-md ${
+                      isSelected
+                        ? 'w-3.5 h-3.5 bg-[#D4621A] ring-2 ring-[#FEF3E2] scale-125'
+                        : isHovered
+                        ? 'w-3 h-3 bg-[#F4AE52] ring-2 ring-[#D4621A] scale-110'
+                        : 'w-2.5 h-2.5 bg-[#F4AE52] hover:bg-[#D4621A]'
+                    }`}
+                  />
+                </div>
 
-          {/* ESP32 Hotspot */}
-          <button
-            type="button"
-            onClick={() => onSelectSubsystem && onSelectSubsystem('esp32')}
-            onMouseEnter={() => setHoveredHotspot('esp32')}
-            onMouseLeave={() => setHoveredHotspot(null)}
-            className="pointer-events-auto absolute top-[38%] left-[28%] -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#F4AE52] hover:bg-[#D4621A] text-[#2A1A0E] flex items-center justify-center shadow-lg transition-transform hover:scale-110"
-            title="ESP32-WROOM"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-          </button>
+                {/* Sleek Minimal Tooltip */}
+                {(isHovered || isSelected) && (
+                  <div
+                    className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-lg text-left pointer-events-none shadow-xl border backdrop-blur-md transition-all duration-200 z-30 ${
+                      isSelected
+                        ? 'bg-[#251306]/95 border-[#D4621A] text-[#FEF3E2]'
+                        : 'bg-[#251306]/90 border-[#F4AE52]/50 text-[#FEF3E2]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-mono font-bold text-[#F4AE52]">{data.code}</span>
+                      <span className="text-[11px] font-medium text-white">{data.name}</span>
+                    </div>
+                    <div className="text-[9px] font-mono text-[#FEF3E2]/60 mt-0.5">
+                      {data.category} • Click to isolate
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-          {/* Wheels Hotspot */}
+        {/* View Angle Pill Controls */}
+        <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-[#251306]/80 backdrop-blur-md border border-[#F4AE52]/30 rounded-full px-2.5 py-1">
           <button
             type="button"
-            onClick={() => onSelectSubsystem && onSelectSubsystem('wheels')}
-            onMouseEnter={() => setHoveredHotspot('wheels')}
-            onMouseLeave={() => setHoveredHotspot(null)}
-            className="pointer-events-auto absolute top-[62%] left-[78%] -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#FEF3E2] hover:bg-[#F4AE52] text-[#2A1A0E] flex items-center justify-center shadow-lg transition-transform hover:scale-110"
-            title="Wheels & Traction"
+            onClick={handleTopView}
+            className="text-[10px] font-mono text-[#FEF3E2]/70 hover:text-[#F4AE52] px-1.5 py-0.5 transition-colors"
+            title="Top View"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
+            TOP
+          </button>
+          <span className="text-[#F4AE52]/30 text-xs">|</span>
+          <button
+            type="button"
+            onClick={handleResetCamera}
+            className="text-[10px] font-mono text-[#FEF3E2]/70 hover:text-[#F4AE52] px-1.5 py-0.5 transition-colors"
+            title="Isometric Reset"
+          >
+            ISO
           </button>
         </div>
 
-        {/* Hovered Hotspot Label Card */}
-        {hoveredHotspot && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#2A1A0E]/90 border border-[#F4AE52]/40 text-xs font-mono text-[#F4AE52] shadow-xl pointer-events-none z-20">
-            {SUBSYSTEMS_DATA[hoveredHotspot].name}
-          </div>
-        )}
+        {/* Reset Camera Icon Button */}
+        <button
+          type="button"
+          onClick={handleResetCamera}
+          className="absolute top-4 right-4 z-10 w-7 h-7 rounded-full bg-[#251306]/80 hover:bg-[#3D2414] border border-[#F4AE52]/40 text-[#FEF3E2] flex items-center justify-center transition-all hover:scale-105"
+          title="Reset View"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-[#F4AE52]" />
+        </button>
       </div>
 
-      {/* 3. Compact Pill Dock (Explode Slider & Reset View) */}
-      <div
-        className="mt-4 px-5 py-2.5 rounded-full flex items-center gap-4 text-xs font-mono shadow-xl z-20"
-        style={{
-          background: 'rgba(42, 26, 14, 0.95)',
-          border: '1.5px solid rgba(254, 243, 226, 0.18)',
-        }}
-      >
-        <span className="text-[#8C7360] uppercase tracking-wider text-[10px]">
-          Explode:
+      {/* Exploded View Slider (Amber Gold & Burnt Rust Accents) */}
+      <div className="mt-4 w-full max-w-[420px] flex items-center justify-between gap-4 px-4 py-2.5 rounded-full bg-[#FEF3E2] border border-[#F4AE52]/50 shadow-md">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[#251306] font-bold flex items-center gap-1.5 shrink-0">
+          <Sparkles className="w-3 h-3 text-[#D4621A]" />
+          EXPLODE:
         </span>
+
         <input
           type="range"
-          min={0}
-          max={1}
-          step={0.02}
+          min="0"
+          max="1"
+          step="0.02"
           value={explodeFactor}
-          onChange={(e) => setExplodeFactor(Number(e.target.value))}
-          className="w-28 sm:w-36 h-1.5 rounded-lg appearance-none cursor-pointer accent-[#D4621A] bg-[#3D2414]"
+          onChange={(e) => setExplodeFactor(parseFloat(e.target.value))}
+          className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[#D4621A] bg-[#251306]/15 focus:outline-none"
         />
-        <span className="text-[#F4AE52] font-mono min-w-[36px]">
+
+        <span className="text-[11px] font-mono font-bold text-[#D4621A] w-9 text-right shrink-0">
           {Math.round(explodeFactor * 100)}%
         </span>
 
         <button
-          onClick={handleResetCamera}
-          title="Reset View"
-          className="p-1 rounded-full text-[#FEF3E2]/60 hover:text-[#FEF3E2] hover:bg-white/10 transition-colors"
+          type="button"
+          onClick={() => setExplodeFactor(0)}
+          className="text-[#251306]/60 hover:text-[#D4621A] transition-colors shrink-0"
+          title="Collapse Assembly"
         >
           <RotateCcw className="w-3.5 h-3.5" />
         </button>
       </div>
+
+      {/* Active Subsystem Hardware Spec Card */}
+      {activeSubsystem && SUBSYSTEMS_DATA[activeSubsystem] && (
+        <div className="mt-3 w-full max-w-[420px] px-4 py-2 rounded-xl bg-white/70 backdrop-blur-sm border border-[#F4AE52]/30 shadow-sm text-center">
+          <span className="text-[9px] font-mono uppercase tracking-widest text-[#D4621A] font-bold">
+            {SUBSYSTEMS_DATA[activeSubsystem].category} SPEC:
+          </span>
+          <p className="text-[11px] font-mono text-[#251306] font-medium mt-0.5">
+            {SUBSYSTEMS_DATA[activeSubsystem].specs}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
