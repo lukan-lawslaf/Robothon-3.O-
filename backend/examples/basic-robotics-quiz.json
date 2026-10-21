@@ -1,0 +1,131 @@
+{
+  "name": "Basic robotics quiz",
+  "durationSeconds": 300,
+  "qualificationCount": 50,
+  "pointsPerCorrect": 1,
+  "negativeMarking": false,
+  "negativePoints": 0,
+  "preQuizCountdownSeconds": 10,
+  "questions": [
+    {
+      "questionText": "Which component supplies electrical energy to a battery-powered robot?",
+      "correctOption": "A",
+      "points": 1,
+      "category": "Basic robotics",
+      "options": [
+        {
+          "optionKey": "A",
+          "optionText": "Battery"
+        },
+        {
+          "optionKey": "B",
+          "optionText": "Wheel"
+        },
+        {
+          "optionKey": "C",
+          "optionText": "Chassis"
+        },
+        {
+          "optionKey": "D",
+          "optionText": "Sensor bracket"
+        }
+      ]
+    },
+    {
+      "questionText": "What is the main job of a microcontroller in a robot?",
+      "correctOption": "C",
+      "points": 1,
+      "category": "Basic robotics",
+      "options": [
+        {
+          "optionKey": "A",
+          "optionText": "Store mechanical energy"
+        },
+        {
+          "optionKey": "B",
+          "optionText": "Support the wheels"
+        },
+        {
+          "optionKey": "C",
+          "optionText": "Run the program and control connected components"
+        },
+        {
+          "optionKey": "D",
+          "optionText": "Replace all sensors"
+        }
+      ]
+    },
+    {
+      "questionText": "Why is a motor driver used between a microcontroller and a DC motor?",
+      "correctOption": "B",
+      "points": 1,
+      "category": "Basic robotics",
+      "options": [
+        {
+          "optionKey": "A",
+          "optionText": "To measure room temperature"
+        },
+        {
+          "optionKey": "B",
+          "optionText": "To control the motor using a suitable power circuit"
+        },
+        {
+          "optionKey": "C",
+          "optionText": "To store the robot code"
+        },
+        {
+          "optionKey": "D",
+          "optionText": "To increase camera resolution"
+        }
+      ]
+    },
+    {
+      "questionText": "Which sensor can measure distance by sending and receiving sound pulses?",
+      "correctOption": "D",
+      "points": 1,
+      "category": "Basic robotics",
+      "options": [
+        {
+          "optionKey": "A",
+          "optionText": "Temperature sensor"
+        },
+        {
+          "optionKey": "B",
+          "optionText": "Light-dependent resistor"
+        },
+        {
+          "optionKey": "C",
+          "optionText": "Push button"
+        },
+        {
+          "optionKey": "D",
+          "optionText": "Ultrasonic sensor"
+        }
+      ]
+    },
+    {
+      "questionText": "What usually happens when the supply polarity of a simple brushed DC motor is reversed?",
+      "correctOption": "A",
+      "points": 1,
+      "category": "Basic robotics",
+      "options": [
+        {
+          "optionKey": "A",
+          "optionText": "It changes its direction of rotation"
+        },
+        {
+          "optionKey": "B",
+          "optionText": "It becomes a distance sensor"
+        },
+        {
+          "optionKey": "C",
+          "optionText": "Its shaft permanently locks"
+        },
+        {
+          "optionKey": "D",
+          "optionText": "It stores the control program"
+        }
+      ]
+    }
+  ]
+}

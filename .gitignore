@@ -1,43 +1,47 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Diagnostic reports
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Dependency directories
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
 
-# Production build output
+# Production builds
 dist/
 dist-ssr/
 build/
 *.local
 
-# Environment variables
+# Environment & credentials
 .env
 .env.*
 !.env.example
+.env.production
+.env.development
 
-# Editor and OS files
+# State & database files
+backend/data/quiz-state.json
+backend/data/quiz-state.json.tmp
+backend/data/*.tmp
+backend/data/*.log
+*.local.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor & OS files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.DS_Store
-Thumbs.db
+
+backend/.env.production

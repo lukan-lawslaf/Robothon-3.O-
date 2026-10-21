@@ -1,0 +1,20 @@
+{
+  "name": "robothon-quiz-module",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "provision": "node server/provision-accounts.js",
+    "test": "node --test",
+    "api": "node --env-file-if-exists=.env server/index.js",
+    "dev": "node --env-file-if-exists=.env server/index.js",
+    "supabase:provision": "node --env-file-if-exists=.env server/provision-supabase.js",
+    "supabase:import-teams": "node --env-file-if-exists=.env server/import-registration.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10"
+  }
+}

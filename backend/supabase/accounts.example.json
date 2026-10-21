@@ -1,0 +1,7 @@
+[
+  { "email": "superadmin@your-event.example", "password": "REPLACE_WITH_UNIQUE_PASSWORD", "name": "Event Organizer", "role": "SUPER_ADMIN" },
+  { "email": "checkpoint1@your-event.example", "password": "REPLACE_WITH_UNIQUE_PASSWORD", "name": "Checkpoint Admin 1", "role": "ADMIN" },
+  { "email": "checkpoint2@your-event.example", "password": "REPLACE_WITH_UNIQUE_PASSWORD", "name": "Checkpoint Admin 2", "role": "ADMIN" },
+  { "email": "leader@your-team.example", "password": "REPLACE_WITH_UNIQUE_PASSWORD", "name": "Team Leader", "role": "TEAM_LEADER", "teamId": "team-01", "teamName": "Your Team" },
+  { "email": "member@your-team.example", "password": "REPLACE_WITH_UNIQUE_PASSWORD", "name": "Team Member", "role": "TEAM_MEMBER", "teamId": "team-01", "teamName": "Your Team" }
+]

@@ -1,0 +1,9 @@
+data/quiz-state.json
+data/quiz-state.json.tmp
+*.local.json
+data/*.tmp
+data/*.log
+node_modules/
+.env
+.env.*
+!.env.example

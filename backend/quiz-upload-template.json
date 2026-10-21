@@ -1,0 +1,46 @@
+{
+  "name": "Robothon 2026 — Quiz 1: Preliminary Elimination",
+  "durationSeconds": 1800,
+  "pointsPerCorrect": 4,
+  "negativeMarking": true,
+  "negativePoints": 1,
+  "qualificationCount": 40,
+  "questions": [
+    {
+      "questionText": "Which type of motor control uses proportional, integral, and derivative terms to calculate correction values?",
+      "category": "Control Systems",
+      "points": 4,
+      "options": [
+        { "optionKey": "A", "optionText": "Open-loop feedforward" },
+        { "optionKey": "B", "optionText": "Closed-loop PID control" },
+        { "optionKey": "C", "optionText": "Bang-bang switching" },
+        { "optionKey": "D", "optionText": "Pulse width modulation only" }
+      ],
+      "correctOption": "B"
+    },
+    {
+      "questionText": "What primary advantage does the CAN bus protocol offer in competitive robotics over standard I2C?",
+      "category": "Communication",
+      "points": 4,
+      "options": [
+        { "optionKey": "A", "optionText": "Differential signaling with hardware error confinement and arbitration" },
+        { "optionKey": "B", "optionText": "Lower voltage levels for analog sensors" },
+        { "optionKey": "C", "optionText": "Direct video streaming support" },
+        { "optionKey": "D", "optionText": "Does not require termination resistors" }
+      ],
+      "correctOption": "A"
+    },
+    {
+      "questionText": "In autonomous navigation, what does SLAM stand for?",
+      "category": "Autonomous Systems",
+      "points": 4,
+      "options": [
+        { "optionKey": "A", "optionText": "Synchronous Linear Actuator Movement" },
+        { "optionKey": "B", "optionText": "Simultaneous Localization and Mapping" },
+        { "optionKey": "C", "optionText": "Spatial LiDAR Acceleration Matrix" },
+        { "optionKey": "D", "optionText": "Static Landmark Alignment Model" }
+      ],
+      "correctOption": "B"
+    }
+  ]
+}

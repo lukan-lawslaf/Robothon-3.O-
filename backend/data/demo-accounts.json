@@ -1,0 +1,34 @@
+[
+  {
+    "id": "superadmin",
+    "email": "superadmin@robothon.live",
+    "password": "9T9@U#@n_jS9w0v@Yk",
+    "name": "Lead Super Admin",
+    "role": "SUPER_ADMIN",
+    "eligible": true
+  },
+  {
+    "id": "admin1",
+    "email": "admin1@robothon.live",
+    "password": "Atu@T8-Nuw6Di-_gz8",
+    "name": "Checkpoint Marshal 1",
+    "role": "ADMIN",
+    "eligible": true
+  },
+  {
+    "id": "admin2",
+    "email": "admin2@robothon.live",
+    "password": "lp#h7U8a9_Hj6XsH##",
+    "name": "Checkpoint Marshal 2",
+    "role": "ADMIN",
+    "eligible": true
+  },
+  {
+    "id": "admin3",
+    "email": "admin3@robothon.live",
+    "password": "RTD2hL1KY*apjm@-V4",
+    "name": "Checkpoint Marshal 3",
+    "role": "ADMIN",
+    "eligible": true
+  }
+]

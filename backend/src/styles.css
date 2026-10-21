@@ -1,0 +1,122 @@
+/* Robothon Arena Net — Telemetry Command Matrix Design Tokens */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  background-color: #0b1326;
+  color: #dae2fd;
+  font-family: 'Inter', sans-serif;
+  overscroll-behavior: none;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b1326;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #222a3d;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #31394d;
+}
+
+.material-symbols-outlined {
+  font-size: 20px;
+  vertical-align: middle;
+}
+
+/* Telemetry Command Matrix Shadows & Halos */
+.halo-cyan {
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+}
+
+.halo-cyan-lg {
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
+}
+
+.halo-error {
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.4);
+}
+
+.halo-tertiary {
+  box-shadow: 0 0 12px rgba(168, 255, 210, 0.35);
+}
+
+/* Radio Option Target Styling */
+.option-panel {
+  transition: all 0.15s ease-in-out;
+}
+
+.option-panel:hover {
+  background-color: #222a3d;
+}
+
+.option-panel.selected {
+  background-color: rgba(0, 229, 255, 0.12);
+  border-color: #00e5ff;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.2);
+}
+
+/* Micro-Pulse */
+@keyframes micro-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.95); }
+}
+
+.animate-micro-pulse {
+  animation: micro-pulse 2s infinite ease-in-out;
+}
+
+/* Scanline Overlay (Optional) */
+.scanline-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(51, 65, 85, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(51, 65, 85, 0.08) 1px, transparent 1px);
+}
+
+/* Form input primitives */
+.input-field {
+  width: 100%;
+  background-color: #060e20;
+  color: #dae2fd;
+  border: 1px solid #334155;
+  border-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input-field:focus {
+  border-color: #00e5ff;
+  box-shadow: 0 0 0 1px #00e5ff;
+}
+
+.select-field {
+  width: 100%;
+  background-color: #060e20;
+  color: #dae2fd;
+  border: 1px solid #334155;
+  border-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.select-field:focus {
+  border-color: #00e5ff;
+}
