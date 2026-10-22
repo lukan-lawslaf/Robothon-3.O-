@@ -189,6 +189,19 @@ export const TeamRegistrationsPage: React.FC = () => {
     return { totalTeams, totalLeaders, totalParticipants, avgSize };
   }, [teams]);
 
+  // Track teams that have duplicate submissions (by team name or leader email)
+  const duplicateCounts = useMemo(() => {
+    const nameCounts: Record<string, number> = {};
+    const emailCounts: Record<string, number> = {};
+    teams.forEach(t => {
+      const nameKey = t.teamName.trim().toLowerCase();
+      if (nameKey) nameCounts[nameKey] = (nameCounts[nameKey] || 0) + 1;
+      const emailKey = t.leader?.email?.trim().toLowerCase();
+      if (emailKey && emailKey !== 'n/a') emailCounts[emailKey] = (emailCounts[emailKey] || 0) + 1;
+    });
+    return { nameCounts, emailCounts };
+  }, [teams]);
+
   // Filtered teams
   const filteredTeams = useMemo(() => {
     return teams.filter(t => {
@@ -446,10 +459,14 @@ export const TeamRegistrationsPage: React.FC = () => {
           /* Cards Grid View - Light Mode */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredTeams.map((team) => {
-              const isExpanded = expandedTeams[team.teamId] ?? true;
+              const uniqueKey = `${team.teamId}_row${team.sourceRow}`;
+              const isExpanded = expandedTeams[uniqueKey] ?? expandedTeams[team.teamId] ?? true;
+              const isDuplicate = (duplicateCounts.nameCounts[team.teamName.trim().toLowerCase()] || 0) > 1 ||
+                Boolean(team.leader?.email && (duplicateCounts.emailCounts[team.leader.email.trim().toLowerCase()] || 0) > 1);
+
               return (
                 <div
-                  key={team.teamId}
+                  key={uniqueKey}
                   className="rounded-3xl border border-[#EAE0D5] bg-white p-5 space-y-4 shadow-xs hover:border-[#D4621A]/50 hover:shadow-md transition-all"
                 >
                   {/* Team Card Header */}
@@ -459,9 +476,17 @@ export const TeamRegistrationsPage: React.FC = () => {
                         {team.teamName.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="text-base font-bold text-[#23150A] tracking-tight">
-                          {team.teamName}
-                        </h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base font-bold text-[#23150A] tracking-tight">
+                            {team.teamName}
+                          </h3>
+                          {isDuplicate && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+                              <span>Duplicate Submission</span>
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] font-mono text-stone-400">
                           Form Entry Row {team.sourceRow}
                         </span>
@@ -483,7 +508,7 @@ export const TeamRegistrationsPage: React.FC = () => {
                         <span>Remove</span>
                       </button>
                       <button
-                        onClick={() => toggleExpand(team.teamId)}
+                        onClick={() => toggleExpand(uniqueKey)}
                         className="p-1 rounded-lg text-stone-400 hover:text-stone-700"
                       >
                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -574,9 +599,9 @@ export const TeamRegistrationsPage: React.FC = () => {
                       </div>
 
                       <div className="space-y-1.5">
-                        {team.members.map((member) => (
+                        {team.members.map((member, mIdx) => (
                           <div
-                            key={member.memberIndex}
+                            key={`${uniqueKey}-mem-${mIdx}-${member.memberIndex}`}
                             className="p-2.5 rounded-xl border border-stone-200/80 bg-[#FAF7F3] flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs shadow-xs"
                           >
                             <div className="flex items-center gap-2">
@@ -623,33 +648,47 @@ export const TeamRegistrationsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F1E8DF]">
-                  {filteredTeams.map((team) => (
-                    <tr key={team.teamId} className="hover:bg-orange-50/30 transition-colors">
-                      <td className="py-3.5 px-4 text-stone-400 font-bold">{team.sourceRow}</td>
-                      <td className="py-3.5 px-4 font-bold text-stone-900">{team.teamName}</td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5 text-amber-900 font-bold">
-                          <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>{team.leader?.name || 'N/A'}</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-amber-950 font-bold">
-                          🔑 {team.leader?.enrollment || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-stone-700">{team.leader?.email || 'N/A'}</td>
-                      <td className="py-3.5 px-4">
-                        <div className="space-y-1">
-                          {team.members.map((m) => (
-                            <div key={m.memberIndex} className="text-[11px] text-stone-600 flex items-center gap-1.5">
-                              <span className="text-stone-400 font-bold">#{m.memberIndex}</span>
-                              <span className="text-stone-900 font-medium">{m.name}</span>
-                              <span className="text-stone-500 font-mono">({m.enrollment})</span>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
+                  {filteredTeams.map((team) => {
+                    const uniqueKey = `${team.teamId}_row${team.sourceRow}`;
+                    const isDuplicate = (duplicateCounts.nameCounts[team.teamName.trim().toLowerCase()] || 0) > 1 ||
+                      Boolean(team.leader?.email && (duplicateCounts.emailCounts[team.leader.email.trim().toLowerCase()] || 0) > 1);
+
+                    return (
+                      <tr key={uniqueKey} className="hover:bg-orange-50/30 transition-colors">
+                        <td className="py-3.5 px-4 text-stone-400 font-bold">{team.sourceRow}</td>
+                        <td className="py-3.5 px-4 font-bold text-stone-900">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{team.teamName}</span>
+                            {isDuplicate && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                Duplicate
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1.5 text-amber-900 font-bold">
+                            <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>{team.leader?.name || 'N/A'}</span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-amber-950 font-bold">
+                            🔑 {team.leader?.enrollment || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-stone-700">{team.leader?.email || 'N/A'}</td>
+                        <td className="py-3.5 px-4">
+                          <div className="space-y-1">
+                            {team.members.map((m, mIdx) => (
+                              <div key={`${uniqueKey}-tblmem-${mIdx}-${m.memberIndex}`} className="text-[11px] text-stone-600 flex items-center gap-1.5">
+                                <span className="text-stone-400 font-bold">#{m.memberIndex}</span>
+                                <span className="text-stone-900 font-medium">{m.name}</span>
+                                <span className="text-stone-500 font-mono">({m.enrollment})</span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-[#C2520F] border border-orange-200">
                           {team.totalMembers}
@@ -666,7 +705,8 @@ export const TeamRegistrationsPage: React.FC = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

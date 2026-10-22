@@ -3,6 +3,7 @@ import { MiniGame, MiniGameScoreEntry, AwardMiniGamePayload } from '../../types/
 import { Team } from '../../types/auth';
 import { getMiniGames, awardMiniGameBonus, getRecentBonusAwards } from '../../services/minigameService';
 import { MOCK_TEAMS } from '../../mockData/teams.mock';
+import { getStoredTeams } from '../../services/stateStore';
 import { BonusPointsForm } from '../../components/admin/BonusPointsForm';
 import { Gamepad2, Award, History } from 'lucide-react';
 
@@ -10,6 +11,8 @@ export const MiniGamesPage: React.FC = () => {
   const [miniGames, setMiniGames] = useState<MiniGame[]>([]);
   const [recentAwards, setRecentAwards] = useState<MiniGameScoreEntry[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const storedTeams = getStoredTeams();
+  const activeTeams = storedTeams && storedTeams.length > 0 ? (storedTeams as any) : MOCK_TEAMS;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,7 +53,7 @@ export const MiniGamesPage: React.FC = () => {
         <div className="lg:col-span-5">
           <BonusPointsForm
             miniGames={miniGames}
-            teams={MOCK_TEAMS}
+            teams={activeTeams}
             onAwardBonus={handleAwardBonus}
             isSubmitting={isSubmitting}
           />

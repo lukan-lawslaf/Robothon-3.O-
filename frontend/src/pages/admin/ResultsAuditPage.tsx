@@ -218,7 +218,7 @@ export const ResultsAuditPage: React.FC = () => {
             Advancement Slot Count
           </h3>
           <p className="text-xs font-mono text-stone-500 mt-1">
-            Adjust the qualifying threshold. The visual demarcation adjusts dynamically without source code edits.
+            Adjust the qualifying advancement threshold for the event.
           </p>
         </div>
 
@@ -243,7 +243,7 @@ export const ResultsAuditPage: React.FC = () => {
           <span className="font-bold uppercase tracking-wider text-stone-600">
             Adjudication Standings ({rows.length} Teams)
           </span>
-          <span className="text-[#D4621A] font-bold">Deterministic Ranking Engine</span>
+          <span className="text-[#D4621A] font-bold">Authoritative Standings</span>
         </div>
 
         <div className="overflow-x-auto">

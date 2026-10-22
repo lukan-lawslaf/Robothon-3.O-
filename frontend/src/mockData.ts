@@ -25,8 +25,26 @@ export interface MockTeam {
   debarred?: boolean;
   qualificationStatus?: string;
   leader?: TeamMemberInfo | null;
+  leaderName?: string;
   members?: TeamMemberInfo[];
   allMembers?: TeamMemberInfo[];
+}
+
+export function getTeamLeaderName(team: any): string {
+  if (!team) return '';
+  if (typeof team.leader === 'string' && team.leader.trim()) return team.leader.trim();
+  if (team.leader?.name && typeof team.leader.name === 'string') return team.leader.name.trim();
+  if (team.leaderName && typeof team.leaderName === 'string') return team.leaderName.trim();
+  if (team.leader_name && typeof team.leader_name === 'string') return team.leader_name.trim();
+  if (Array.isArray(team.members)) {
+    const leaderMem = team.members.find((m: any) => m?.role === 'LEADER' || m?.isLeader);
+    if (leaderMem?.name) return leaderMem.name.trim();
+  }
+  if (Array.isArray(team.allMembers)) {
+    const leaderMem = team.allMembers.find((m: any) => m?.role === 'LEADER' || m?.isLeader);
+    if (leaderMem?.name) return leaderMem.name.trim();
+  }
+  return '';
 }
 
 export interface MockCheckpoint {

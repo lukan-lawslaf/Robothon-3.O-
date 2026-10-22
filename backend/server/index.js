@@ -32,6 +32,36 @@ const readBody = async req => {
 export function createApp({ store: rootStore, accounts = rootStore.accounts || [], auth: authAdapter }) {
   // Sessions are process-local. After a restart, allow saved attempts to bind to a new login.
   if (!authAdapter) rootStore.state.attempts.filter(a => a.status === 'ACTIVE').forEach(a => { a.sessionInvalidated = true; });
+  // Enforce unique teamId across all teams in registrationRoster
+  if (Array.isArray(rootStore.state?.registrationRoster)) {
+    const seenIds = new Set();
+    for (const item of rootStore.state.registrationRoster) {
+      if (!item.teamId) item.teamId = 'team-' + Math.random().toString(36).slice(2, 10);
+      let uniqueId = item.teamId;
+      let c = 1;
+      while (seenIds.has(uniqueId)) {
+        c++;
+        uniqueId = `${item.teamId}-${c}`;
+      }
+      item.teamId = uniqueId;
+      seenIds.add(uniqueId);
+    }
+  }
+  if (Array.isArray(rootStore.state?.platform?.teams)) {
+    const seenIds = new Set();
+    for (const item of rootStore.state.platform.teams) {
+      if (!item.id) item.id = 'team-' + Math.random().toString(36).slice(2, 10);
+      let uniqueId = item.id;
+      let c = 1;
+      while (seenIds.has(uniqueId)) {
+        c++;
+        uniqueId = `${item.id}-${c}`;
+      }
+      item.id = uniqueId;
+      seenIds.add(uniqueId);
+    }
+  }
+
   let initialAccounts = [...accounts];
   if (!authAdapter && Array.isArray(rootStore.state?.registrationRoster)) {
     const existingIds = new Set(initialAccounts.map(a => a.id));
@@ -338,6 +368,20 @@ export function createApp({ store: rootStore, accounts = rootStore.accounts || [
             if (!roster && input.csvText) {
               roster = extractTeamsFromCsv(input.csvText);
             }
+            if (Array.isArray(roster)) {
+              const seenIds = new Set();
+              for (const item of roster) {
+                if (!item.teamId) item.teamId = 'team-' + Math.random().toString(36).slice(2, 10);
+                let uniqueId = item.teamId;
+                let c = 1;
+                while (seenIds.has(uniqueId)) {
+                  c++;
+                  uniqueId = `${item.teamId}-${c}`;
+                }
+                item.teamId = uniqueId;
+                seenIds.add(uniqueId);
+              }
+            }
             // Complete clean replacement: wipe previous roster
             store.state.registrationRoster = roster || [];
             store.state.registrationSource = input.source || 'Uploaded CSV';
@@ -348,7 +392,9 @@ export function createApp({ store: rootStore, accounts = rootStore.accounts || [
               // Completely replace platform teams with ONLY the newly uploaded teams
               store.state.platform.teams = roster.map(item => ({
                 id: item.teamId,
-                teamName: item.teamName
+                teamName: item.teamName,
+                leader: item.leader || null,
+                leaderName: item.leader?.name || null
               }));
 
               // Re-initialize checkpoints and tickets exclusively for new teams to maintain a clean slate

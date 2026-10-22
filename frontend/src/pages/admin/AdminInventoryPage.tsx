@@ -9,7 +9,7 @@ import {
   InventoryAdjustment
 } from '../../services/inventoryService';
 import { getStoredTeams } from '../../services/stateStore';
-import { MockTeam } from '../../mockData';
+import { MockTeam, getTeamLeaderName } from '../../mockData';
 import { useAccount, isAdmin } from '../../services/authService';
 import {
   Boxes,
@@ -975,7 +975,18 @@ export const AdminInventoryPage: React.FC = () => {
             <form onSubmit={handleAllocateSubmit} className="space-y-4 font-mono text-xs">
               {/* Select Team */}
               <div>
-                <label className="block text-stone-600 font-bold mb-1">Target Team</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-stone-600 font-bold">Target Team</label>
+                  {(() => {
+                    const sel = teams.find(t => t.id === selectedTeamId);
+                    const lName = getTeamLeaderName(sel);
+                    return lName ? (
+                      <span className="text-[10px] font-mono font-bold text-[#ea580c] bg-orange-100/80 px-2 py-0.5 rounded-md border border-orange-200 flex items-center gap-1 shadow-2xs">
+                        👑 Leader: <span className="underline">{lName}</span>
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
                 <select
                   value={selectedTeamId}
                   onChange={e => setSelectedTeamId(e.target.value)}
@@ -984,9 +995,10 @@ export const AdminInventoryPage: React.FC = () => {
                   <option value="">-- Choose Team --</option>
                   {teams.map(t => {
                     const isDisq = Boolean(t.isDisqualified || t.debarred || t.qualificationStatus === 'DEBARRED' || (t as any).status === 'DISQUALIFIED');
+                    const lName = getTeamLeaderName(t);
                     return (
                       <option key={t.id} value={t.id} disabled={isDisq}>
-                        {(t as any).teamName || (t as any).name || t.id} ({t.id}){isDisq ? ' ❌ [DISQUALIFIED]' : ''}
+                        {(t as any).teamName || (t as any).name || t.id} {lName ? `[👑 Leader: ${lName}]` : ''} ({t.id}){isDisq ? ' ❌ [DISQUALIFIED]' : ''}
                       </option>
                     );
                   })}
@@ -1116,16 +1128,32 @@ export const AdminInventoryPage: React.FC = () => {
 
             <form onSubmit={handleAdjustSubmit} className="space-y-4 font-mono text-xs">
               <div>
-                <label className="block text-stone-600 font-bold mb-1">Team</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-stone-600 font-bold">Team</label>
+                  {(() => {
+                    const sel = teams.find(t => t.id === adjustTeamId);
+                    const lName = getTeamLeaderName(sel);
+                    return lName ? (
+                      <span className="text-[10px] font-mono font-bold text-[#ea580c] bg-orange-100/80 px-2 py-0.5 rounded-md border border-orange-200 flex items-center gap-1 shadow-2xs">
+                        👑 Leader: <span className="underline">{lName}</span>
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
                 <select
                   value={adjustTeamId}
                   onChange={e => setAdjustTeamId(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#ea580c]"
                 >
                   <option value="">-- Choose Team --</option>
-                  {teams.map(t => (
-                    <option key={t.id} value={t.id}>{(t as any).teamName || (t as any).name || t.id} ({t.id})</option>
-                  ))}
+                  {teams.map(t => {
+                    const lName = getTeamLeaderName(t);
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {(t as any).teamName || (t as any).name || t.id} {lName ? `[👑 Leader: ${lName}]` : ''} ({t.id})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

@@ -3,6 +3,7 @@ import { MiniGame, AwardMiniGamePayload } from '../../types/minigame';
 import { Team } from '../../types/auth';
 import { Button } from '../common/Button';
 import { Award, Gamepad2, Send } from 'lucide-react';
+import { getTeamLeaderName } from '../../mockData';
 
 interface BonusPointsFormProps {
   miniGames: MiniGame[];
@@ -86,19 +87,33 @@ export const BonusPointsForm: React.FC<BonusPointsFormProps> = ({
 
         {/* Team selection */}
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            Recipient Team:
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Recipient Team:
+            </label>
+            {(() => {
+              const sel = teams.find(t => t.id === selectedTeamId);
+              const lName = getTeamLeaderName(sel);
+              return lName ? (
+                <span className="text-[11px] font-mono font-bold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded-md border border-cyan-500/40 flex items-center gap-1 shadow-2xs">
+                  👑 Leader: <span className="underline">{lName}</span>
+                </span>
+              ) : null;
+            })()}
+          </div>
           <select
             value={selectedTeamId}
             onChange={(e) => setSelectedTeamId(e.target.value)}
             className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-sm text-slate-100 focus:outline-none focus:border-cyan-500"
           >
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.teamName} {t.tableNumber ? `(Table ${t.tableNumber})` : ''}
-              </option>
-            ))}
+            {teams.map((t) => {
+              const lName = getTeamLeaderName(t);
+              return (
+                <option key={t.id} value={t.id}>
+                  {t.teamName} {lName ? `[👑 Leader: ${lName}]` : ''} {t.tableNumber ? `(Table ${t.tableNumber})` : ''}
+                </option>
+              );
+            })}
           </select>
         </div>
       </div>

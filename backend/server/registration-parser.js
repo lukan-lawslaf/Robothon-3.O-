@@ -36,6 +36,7 @@ export function extractTeamsFromCsv(text) {
   if (teamNameCol === -1) teamNameCol = 1;
 
   const teams = [];
+  const usedTeamIds = new Set();
 
   for (let r = 0; r < dataRows.length; r++) {
     const row = dataRows[r];
@@ -73,7 +74,17 @@ export function extractTeamsFromCsv(text) {
 
     const leader = members.find(m => m.role === 'LEADER') || null;
     const additionalMembers = members.filter(m => m.role !== 'LEADER');
-    const teamId = leader?.email ? 'grid-' + createHash('sha256').update(leader.email.toLowerCase()).digest('hex').slice(0, 16) : 'team-' + createHash('md5').update(teamName.toLowerCase()).digest('hex').slice(0, 10);
+    const baseTeamId = leader?.email
+      ? 'grid-' + createHash('sha256').update(leader.email.toLowerCase()).digest('hex').slice(0, 16)
+      : 'team-' + createHash('md5').update(teamName.toLowerCase()).digest('hex').slice(0, 10);
+
+    let teamId = baseTeamId;
+    let dupCounter = 1;
+    while (usedTeamIds.has(teamId)) {
+      dupCounter++;
+      teamId = `${baseTeamId}-${dupCounter}`;
+    }
+    usedTeamIds.add(teamId);
 
     teams.push({
       teamId,

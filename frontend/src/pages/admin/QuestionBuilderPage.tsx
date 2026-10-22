@@ -28,7 +28,7 @@ export const QuestionBuilderPage: React.FC = () => {
   // Editor states
   const [questionText, setQuestionText] = useState('');
   const [category, setCategory] = useState('Robotics & Controls');
-  const [points, setPoints] = useState(4);
+  const [points, setPoints] = useState(5);
   const [options, setOptions] = useState([
     { optionKey: 'A', optionText: '' },
     { optionKey: 'B', optionText: '' },
@@ -90,7 +90,7 @@ export const QuestionBuilderPage: React.FC = () => {
     setActiveQId(null);
     setQuestionText('');
     setCategory('Robotics');
-    setPoints(4);
+    setPoints(5);
     setOptions([
       { optionKey: 'A', optionText: '' },
       { optionKey: 'B', optionText: '' },
@@ -179,7 +179,7 @@ export const QuestionBuilderPage: React.FC = () => {
       setImportJsonText('');
       loadData(selectedQuizId);
     } catch (err: any) {
-      setError(err.message || 'Invalid JSON format according to QUIZ_FORMAT_SPEC.md.');
+      setError(err.message || 'Invalid JSON format. Please verify the question structure and try again.');
     }
   };
 

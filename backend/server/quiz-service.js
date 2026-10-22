@@ -49,11 +49,89 @@ export class QuizError extends Error {
 const activeAttempt = a => ['ACTIVE'].includes(a.status);
 const nowIso = clock => new Date(clock()).toISOString();
 
+/**
+ * Server-authoritative speed-priority bonus for correct answers:
+ * - 1st–5th fastest correct teams: +3 bonus
+ * - 6th–15th fastest correct teams: +2 bonus
+ * - 16th–30th fastest correct teams: +1 bonus
+ * - 31st onward: +0 bonus
+ */
+export function getSpeedBonus(rank) {
+  if (rank >= 1 && rank <= 5) return 3;
+  if (rank >= 6 && rank <= 15) return 2;
+  if (rank >= 16 && rank <= 30) return 1;
+  return 0;
+}
+
 export class QuizService {
   constructor(store, { clock = Date.now, publish = () => {} } = {}) {
     this.store = store;
     this.clock = clock;
     this.publish = publish;
+  }
+
+  /**
+   * Authoritatively ranks all correct answers for a specific question based on server timestamp
+   * and sequence, then awards customizable base points + whole-number speed bonus.
+   */
+  recalculateQuestionPoints(quizId, questionId) {
+    const quiz = this.quizOrThrow(quizId);
+    const question = this.store.getQuestions(quizId).find(q => q.id === questionId);
+    if (!question) return;
+    const basePoints = Number.isFinite(question.points) ? question.points : (quiz.pointsPerCorrect ?? 5);
+
+    const qAnswers = this.store.state.answers.filter(a => a.questionId === questionId);
+
+    // Wrong answers receive 0 points, no negative marking, no speed rank
+    qAnswers.filter(a => a.selectedOption !== question.correctOption).forEach(a => {
+      a.isCorrect = false;
+      a.speedRank = null;
+      a.speedBonus = 0;
+      a.basePoints = 0;
+      a.pointsAwarded = 0;
+    });
+
+    // Correct answers ranked strictly by server-authoritative timestamp & order
+    const correctAnswers = qAnswers.filter(a => a.selectedOption === question.correctOption);
+    correctAnswers.sort((a, b) => {
+      const timeA = Date.parse(a.answeredAt || 0);
+      const timeB = Date.parse(b.answeredAt || 0);
+      if (timeA !== timeB) return timeA - timeB;
+      return (a.serverSeq || 0) - (b.serverSeq || 0);
+    });
+
+    correctAnswers.forEach((a, index) => {
+      const rank = index + 1;
+      const speedBonus = getSpeedBonus(rank);
+      a.isCorrect = true;
+      a.speedRank = rank;
+      a.speedBonus = speedBonus;
+      a.basePoints = basePoints;
+      a.pointsAwarded = basePoints + speedBonus;
+    });
+  }
+
+  /**
+   * Recalculates total cumulative score for an attempt summing pointsAwarded + adjustments.
+   */
+  recalculateAttemptScore(quizId, attempt) {
+    const teamAnswers = this.store.state.answers.filter(a => a.attemptId === attempt.id);
+    const totalPoints = teamAnswers.reduce((sum, a) => sum + (a.pointsAwarded || 0), 0);
+    attempt.score = totalPoints + (attempt.manualScoreAdjustment ?? 0);
+  }
+
+  /**
+   * Recalculates all questions and attempt scores across an entire quiz.
+   */
+  recalculateQuizScores(quizId) {
+    const questions = this.store.getQuestions(quizId);
+    questions.forEach(q => {
+      this.recalculateQuestionPoints(quizId, q.id);
+    });
+    const attempts = this.store.state.attempts.filter(a => a.quizId === quizId);
+    attempts.forEach(att => {
+      this.recalculateAttemptScore(quizId, att);
+    });
   }
 
   emit(type, payload = {}) {
@@ -98,8 +176,8 @@ export class QuizService {
   adminQuestions(context, quizId) { this.adminOrThrow(context); this.quizOrThrow(quizId); return { questions: this.store.getQuestions(quizId) }; }
   validateQuestion(input) { if (!input?.questionText?.trim()) throw new QuizError(422, 'INVALID_QUESTION', 'Question text is required.'); if (!Array.isArray(input.options) || input.options.length < 2) throw new QuizError(422, 'INVALID_QUESTION', 'At least two options are required.'); const keys = input.options.map(option => option.optionKey); if (new Set(keys).size !== keys.length || keys.some(key => !key)) throw new QuizError(422, 'INVALID_QUESTION', 'Option keys must be unique and non-empty.'); if (!keys.includes(input.correctOption)) throw new QuizError(422, 'INVALID_QUESTION', 'Correct option must match an option key.'); }
   createQuestion(context, quizId, input) { this.adminOrThrow(context); const quiz = this.quizOrThrow(quizId); if (!['DRAFT', 'READY'].includes(quiz.status) && !input?.forceLiveEdit) throw new QuizError(409, 'INVALID_STATE', 'Questions can only change while DRAFT or READY.'); this.validateQuestion(input); const questions = this.store.getQuestions(quizId); const question = { id: input.id || `q-${Date.now()}-${questions.length + 1}`, quizId, questionText: input.questionText.trim(), questionType: input.questionType || 'SINGLE_CHOICE', points: Number.isFinite(input.points) ? input.points : quiz.pointsPerCorrect, orderIndex: input.orderIndex || questions.length + 1, timeLimitSeconds: Number.isInteger(input.timeLimitSeconds) && input.timeLimitSeconds > 0 ? input.timeLimitSeconds : 30, options: input.options.map(option => ({ id: option.id || `${input.id || 'q'}-${option.optionKey.toLowerCase()}`, optionKey: option.optionKey, optionText: option.optionText })), correctOption: input.correctOption, category: input.category || 'General' }; this.store.state.questions.push(question); this.store.save(); this.emit('QUIZ_QUESTIONS_UPDATED', { quizId }); return { question }; }
-  updateQuestion(context, questionId, input) { this.adminOrThrow(context); const question = this.store.state.questions.find(item => item.id === questionId); if (!question) throw new QuizError(404, 'QUESTION_NOT_FOUND', 'Question was not found.'); const quiz = this.quizOrThrow(question.quizId); if (!['DRAFT', 'READY'].includes(quiz.status) && !input?.forceLiveEdit) throw new QuizError(409, 'INVALID_STATE', 'Questions can only change while DRAFT or READY.'); const updated = { ...question, ...input, id: question.id, quizId: question.quizId, timeLimitSeconds: Number.isInteger(input.timeLimitSeconds) && input.timeLimitSeconds > 0 ? input.timeLimitSeconds : (question.timeLimitSeconds || 30) }; this.validateQuestion(updated); Object.assign(question, updated); this.store.save(); this.emit('QUIZ_QUESTIONS_UPDATED', { quizId: question.quizId }); return { question }; }
-  deleteQuestion(context, questionId, options = {}) { this.adminOrThrow(context); const index = this.store.state.questions.findIndex(item => item.id === questionId); if (index < 0) throw new QuizError(404, 'QUESTION_NOT_FOUND', 'Question was not found.'); const quiz = this.quizOrThrow(this.store.state.questions[index].quizId); if (!['DRAFT', 'READY'].includes(quiz.status) && !options?.forceLiveEdit) throw new QuizError(409, 'INVALID_STATE', 'Questions can only change while DRAFT or READY.'); const quizId = quiz.id; this.store.state.questions.splice(index, 1); this.store.save(); this.emit('QUIZ_QUESTIONS_UPDATED', { quizId }); return { deleted: true, questionId }; }
+  updateQuestion(context, questionId, input) { this.adminOrThrow(context); const question = this.store.state.questions.find(item => item.id === questionId); if (!question) throw new QuizError(404, 'QUESTION_NOT_FOUND', 'Question was not found.'); const quiz = this.quizOrThrow(question.quizId); if (!['DRAFT', 'READY'].includes(quiz.status) && !input?.forceLiveEdit) throw new QuizError(409, 'INVALID_STATE', 'Questions can only change while DRAFT or READY.'); const updated = { ...question, ...input, id: question.id, quizId: question.quizId, timeLimitSeconds: Number.isInteger(input.timeLimitSeconds) && input.timeLimitSeconds > 0 ? input.timeLimitSeconds : (question.timeLimitSeconds || 30) }; this.validateQuestion(updated); Object.assign(question, updated); this.recalculateQuizScores(question.quizId); this.store.save(); this.emit('QUIZ_QUESTIONS_UPDATED', { quizId: question.quizId }); this.emit('LEADERBOARD_UPDATED', { quizId: question.quizId }); return { question }; }
+  deleteQuestion(context, questionId, options = {}) { this.adminOrThrow(context); const index = this.store.state.questions.findIndex(item => item.id === questionId); if (index < 0) throw new QuizError(404, 'QUESTION_NOT_FOUND', 'Question was not found.'); const quiz = this.quizOrThrow(this.store.state.questions[index].quizId); if (!['DRAFT', 'READY'].includes(quiz.status) && !options?.forceLiveEdit) throw new QuizError(409, 'INVALID_STATE', 'Questions can only change while DRAFT or READY.'); const quizId = quiz.id; this.store.state.questions.splice(index, 1); this.recalculateQuizScores(quizId); this.store.save(); this.emit('QUIZ_QUESTIONS_UPDATED', { quizId }); this.emit('LEADERBOARD_UPDATED', { quizId }); return { deleted: true, questionId }; }
   exportQuiz(context, quizId) { this.adminOrThrow(context); const quiz = this.quizOrThrow(quizId); const questions = this.store.getQuestions(quizId); return { id: quiz.id, name: quiz.name, durationSeconds: quiz.durationSeconds, qualificationCount: quiz.qualificationCount, pointsPerCorrect: quiz.pointsPerCorrect, preQuizCountdownSeconds: quiz.preQuizCountdownSeconds ?? 10, intermissionSeconds: quiz.intermissionSeconds ?? 7, questions: questions.map(q => ({ questionText: q.questionText, points: q.points, category: q.category || 'General', timeLimitSeconds: q.timeLimitSeconds || 30, options: q.options.map(o => ({ optionKey: o.optionKey, optionText: o.optionText })), correctOption: q.correctOption })) }; }
   importQuiz(context, quizId, payload) { this.adminOrThrow(context); const quiz = this.quizOrThrow(quizId); const rawList = Array.isArray(payload) ? payload : (payload?.questions || []); if (!Array.isArray(rawList) || rawList.length === 0) throw new QuizError(422, 'INVALID_IMPORT', 'Import payload must include an array of questions.'); rawList.forEach(q => this.validateQuestion(q)); if (payload.mode !== 'append') { this.store.state.questions = this.store.state.questions.filter(q => q.quizId !== quizId); } const existing = this.store.getQuestions(quizId); rawList.forEach((q, idx) => { const question = { id: `q-${quizId}-${Date.now()}-${idx + 1}`, quizId, questionText: q.questionText.trim(), questionType: 'SINGLE_CHOICE', points: Number.isFinite(q.points) ? q.points : quiz.pointsPerCorrect, orderIndex: existing.length + idx + 1, timeLimitSeconds: Number.isInteger(q.timeLimitSeconds) && q.timeLimitSeconds > 0 ? q.timeLimitSeconds : 30, options: q.options.map(o => ({ id: `opt-${o.optionKey.toLowerCase()}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`, optionKey: o.optionKey, optionText: o.optionText })), correctOption: q.correctOption, category: q.category || 'General' }; this.store.state.questions.push(question); }); if (typeof payload.name === 'string') quiz.name = payload.name; if (Number.isInteger(payload.durationSeconds) && payload.durationSeconds > 0) quiz.durationSeconds = payload.durationSeconds; if (Number.isInteger(payload.qualificationCount) && payload.qualificationCount > 0) quiz.qualificationCount = payload.qualificationCount; if (Number.isFinite(payload.pointsPerCorrect)) quiz.pointsPerCorrect = payload.pointsPerCorrect;   if (Number.isInteger(payload.preQuizCountdownSeconds) && payload.preQuizCountdownSeconds >= 0) quiz.preQuizCountdownSeconds = payload.preQuizCountdownSeconds; if (Number.isInteger(payload.intermissionSeconds) && payload.intermissionSeconds >= 0) quiz.intermissionSeconds = payload.intermissionSeconds; this.store.save(); this.emit('QUIZ_QUESTIONS_UPDATED', { quizId }); return { success: true, count: rawList.length, quiz: this.publicQuiz(quiz) }; }
   join(context, quizId) { const quiz = this.quizOrThrow(quizId); this.participantOrThrow(context, quiz); if (quiz.status !== 'LIVE') throw new QuizError(409, 'QUIZ_NOT_LIVE', 'The quiz is not accepting attempts.'); this.ensureNotExpired(quiz); const existing = this.store.getAttempt(quizId, context.teamId); if (existing) { if (existing.status === 'ACTIVE') { if (existing.sessionInvalidated) { existing.sessionId = context.sessionId; existing.sessionInvalidated = false; } else if (existing.sessionId && existing.sessionId !== context.sessionId) throw new QuizError(409, 'ATTEMPT_IN_USE', 'This team already has an active attempt on another session.'); else if (!existing.sessionId) existing.sessionId = context.sessionId; return { attempt: this.publicAttempt(existing), quiz: this.publicQuiz(quiz), questions: this.publicQuestions(quizId), resumed: true }; } throw new QuizError(409, 'ATTEMPT_ALREADY_EXISTS', 'This team already has a completed attempt.'); } const attempt = { id: `attempt-${context.teamId}-${quizId}`, quizId, teamId: context.teamId, teamName: context.teamName || context.teamId, userId: context.userId, sessionId: context.sessionId, sessionInvalidated: false, status: 'ACTIVE', startedAt: quiz.startedAt, submittedAt: null, score: null, timeTakenSeconds: null }; this.store.state.attempts.push(attempt); this.store.state.events.push({ quizId, teamId: context.teamId, attemptId: attempt.id, eventType: 'ATTEMPT_STARTED', timestamp: nowIso(this.clock), metadata: {} }); this.store.save(); return { attempt: this.publicAttempt(attempt), quiz: this.publicQuiz(quiz), questions: this.publicQuestions(quizId), resumed: false }; }
@@ -141,69 +219,78 @@ export class QuizService {
     const question = this.store.getQuestions(quizId).find(q => q.id === questionId);
     if (!question) throw new QuizError(404, 'QUESTION_NOT_FOUND', 'Question was not found.');
     if (!question.options.some(o => o.optionKey === selectedOption)) throw new QuizError(422, 'INVALID_OPTION', 'Selected option is not valid.');
+
     const answeredAt = nowIso(this.clock);
+    this.store.state.answerSeq = (this.store.state.answerSeq || 0) + 1;
+    const serverSeq = this.store.state.answerSeq;
+
     const existing = this.store.state.answers.find(a => a.attemptId === attempt.id && a.questionId === questionId);
     const answer = existing || { id: `answer-${attempt.id}-${questionId}`, attemptId: attempt.id, quizId, questionId };
     const isCorrect = question.correctOption === selectedOption;
-    const pointsAwarded = isCorrect ? (question.points ?? quiz.pointsPerCorrect ?? 4) : 0;
-    Object.assign(answer, { quizId, selectedOption, answeredAt, isCorrect, pointsAwarded });
+
+    Object.assign(answer, { quizId, selectedOption, answeredAt, serverSeq, isCorrect });
     if (!existing) this.store.state.answers.push(answer);
 
-    // Compute live cumulative points for interim leaderboard display
-    const allQuestions = this.store.getQuestions(quizId);
-    const teamAnswers = this.store.state.answers.filter(a => a.attemptId === attempt.id);
-    let liveScore = 0;
-    teamAnswers.forEach(ans => {
-      const q = allQuestions.find(item => item.id === ans.questionId);
-      if (q && q.correctOption === ans.selectedOption) {
-        liveScore += (q.points ?? quiz.pointsPerCorrect);
-      }
+    // Authoritatively re-rank question speed bonuses across all answering teams
+    this.recalculateQuestionPoints(quizId, questionId);
+
+    // Update cumulative scores for all teams that answered this question
+    const affectedAttemptIds = new Set(this.store.state.answers.filter(a => a.questionId === questionId).map(a => a.attemptId));
+    this.store.state.attempts.filter(att => affectedAttemptIds.has(att.id)).forEach(att => {
+      this.recalculateAttemptScore(quizId, att);
     });
-    attempt.score = liveScore + (attempt.manualScoreAdjustment ?? 0);
+
     attempt.timeTakenSeconds = Math.max(0, Math.floor((Date.parse(answeredAt) - Date.parse(attempt.startedAt)) / 1000));
     this.store.save();
     this.emit('LEADERBOARD_UPDATED', { quizId });
-    return { answer: { questionId, selectedOption, status: 'SAVED' }, currentScore: attempt.score };
+    return {
+      answer: {
+        questionId,
+        selectedOption,
+        status: 'SAVED',
+        pointsAwarded: answer.pointsAwarded,
+        speedBonus: answer.speedBonus,
+        speedRank: answer.speedRank
+      },
+      currentScore: attempt.score
+    };
   }
   submit(context, quizId) { const quiz = this.quizOrThrow(quizId); this.participantOrThrow(context, quiz); const attempt = this.store.getAttempt(quizId, context.teamId); if (!attempt) throw new QuizError(404, 'ATTEMPT_NOT_FOUND', 'There is no attempt for this team.'); this.sessionOrThrow(context, attempt); if (attempt.status === 'SUBMITTED' || attempt.status === 'EVALUATED') return { attempt: this.publicAttempt(attempt) }; try { this.ensureNotExpired(quiz); } catch (error) { if (error.code === 'QUIZ_DEADLINE_REACHED') { const result = this.evaluate(quiz, attempt); this.emit('FORCE_SUBMIT', { quizId, teamId: attempt.teamId, attemptId: attempt.id }); return { ...result, timedOut: true }; } throw error; } return this.evaluate(quiz, attempt); }
   evaluate(quiz, attempt) {
-    const questions = this.store.getQuestions(quiz.id);
-    const answers = this.store.state.answers.filter(a => a.attemptId === attempt.id);
     if (attempt.status === 'ACTIVE') {
       attempt.status = 'SUBMITTED';
       this.emit('ATTEMPT_SUBMITTED', { quizId: quiz.id, teamId: attempt.teamId, attemptId: attempt.id });
     }
-    let score = 0;
-    answers.forEach(answer => {
-      const question = questions.find(q => q.id === answer.questionId);
-      answer.isCorrect = question.correctOption === answer.selectedOption;
-      answer.pointsAwarded = answer.isCorrect ? (question.points ?? quiz.pointsPerCorrect ?? 4) : 0;
-      score += answer.pointsAwarded;
-    });
-    score += (attempt.manualScoreAdjustment ?? 0);
+    this.recalculateQuizScores(quiz.id);
     attempt.status = 'EVALUATED';
     attempt.submittedAt = nowIso(this.clock);
     attempt.timeTakenSeconds = Math.max(0, Math.floor((Date.parse(attempt.submittedAt) - Date.parse(attempt.startedAt)) / 1000));
-    attempt.score = score;
     this.store.save();
     this.emit('LEADERBOARD_UPDATED', { quizId: quiz.id });
     return { attempt: this.publicAttempt(attempt) };
   }
-  updateConfig(context, quizId, patch) { this.adminOrThrow(context); const quiz = this.quizOrThrow(quizId); if (!['DRAFT', 'READY'].includes(quiz.status) && !patch?.forceLiveEdit) throw new QuizError(409, 'INVALID_STATE', 'Quiz configuration can only change while DRAFT or READY.'); const fields = ['name', 'durationSeconds', 'qualificationCount', 'pointsPerCorrect',  'allowNavigation', 'showLiveScores', 'leaderboardMode', 'autoSubmitOnTimeout', 'oneAttemptPerTeam', 'teamLeaderOnly', 'tieBreaker', 'preQuizCountdownSeconds', 'perQuestionSeconds', 'intermissionSeconds']; const metaKeys = new Set(['forceLiveEdit']); Object.keys(patch || {}).filter(key => !fields.includes(key) && !metaKeys.has(key)).forEach(key => { throw new QuizError(422, 'INVALID_CONFIGURATION_FIELD', `Unsupported configuration field: ${key}.`); }); fields.forEach(key => { if (patch[key] !== undefined) quiz[key] = patch[key]; }); if (patch.pointsPerCorrect !== undefined) {
-      const qIds = new Set(this.store.getQuestions(quizId).map(q => q.id));
-      const answers = this.store.state.answers.filter(a => a.quizId === quizId || qIds.has(a.questionId));
-      answers.forEach(ans => {
-        if (ans.isCorrect) ans.pointsAwarded = Number(patch.pointsPerCorrect);
+  updateConfig(context, quizId, patch) {
+    this.adminOrThrow(context);
+    const quiz = this.quizOrThrow(quizId);
+    if (!['DRAFT', 'READY'].includes(quiz.status) && !patch?.forceLiveEdit) throw new QuizError(409, 'INVALID_STATE', 'Quiz configuration can only change while DRAFT or READY.');
+    const fields = ['name', 'durationSeconds', 'qualificationCount', 'pointsPerCorrect', 'allowNavigation', 'showLiveScores', 'leaderboardMode', 'autoSubmitOnTimeout', 'oneAttemptPerTeam', 'teamLeaderOnly', 'tieBreaker', 'preQuizCountdownSeconds', 'perQuestionSeconds', 'intermissionSeconds'];
+    const metaKeys = new Set(['forceLiveEdit']);
+    Object.keys(patch || {}).filter(key => !fields.includes(key) && !metaKeys.has(key)).forEach(key => { throw new QuizError(422, 'INVALID_CONFIGURATION_FIELD', `Unsupported configuration field: ${key}.`); });
+    fields.forEach(key => { if (patch[key] !== undefined) quiz[key] = patch[key]; });
+    if (patch.pointsPerCorrect !== undefined) {
+      quiz.pointsPerCorrect = Number(patch.pointsPerCorrect);
+      const questions = this.store.getQuestions(quizId);
+      questions.forEach(q => {
+        q.points = Number(patch.pointsPerCorrect);
       });
-      const attempts = this.store.state.attempts.filter(a => a.quizId === quizId);
-      attempts.forEach(att => {
-        const attAnswers = answers.filter(a => a.attemptId === att.id);
-        const newScore = attAnswers.reduce((sum, a) => sum + (a.pointsAwarded || 0), 0);
-        att.score = newScore + (att.manualScoreAdjustment ?? 0);
-      });
+      this.recalculateQuizScores(quizId);
       this.emit('LEADERBOARD_UPDATED', { quizId });
     }
-    this.validateConfig(quiz); this.store.save(); this.emit('QUIZ_CONFIGURATION_UPDATED', { quiz: this.publicQuiz(quiz) }); return { quiz: this.publicQuiz(quiz) }; }
+    this.validateConfig(quiz);
+    this.store.save();
+    this.emit('QUIZ_CONFIGURATION_UPDATED', { quiz: this.publicQuiz(quiz) });
+    return { quiz: this.publicQuiz(quiz) };
+  }
   ready(context, quizId) {
     this.adminOrThrow(context);
     const quiz = this.quizOrThrow(quizId);
@@ -587,6 +674,9 @@ export class QuizService {
         delete t.eliminationReason;
         delete t.qualificationStatus;
       });
+    }
+    if (this.store.state.attempts.length === 0) {
+      this.store.state.answerSeq = 0;
     }
     this.store.save();
     this.emit('QUIZ_RESET', { quiz: this.publicQuiz(quiz) });

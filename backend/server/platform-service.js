@@ -106,6 +106,7 @@ export class PlatformService {
         isDisqualified,
         debarred: isDebarred,
         leader,
+        leaderName: leader?.name || rosterEntry?.leaderName || team.leaderName || null,
         members,
         allMembers
       };

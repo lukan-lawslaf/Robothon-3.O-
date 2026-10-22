@@ -1,4 +1,5 @@
-import { MockTeam, MockCheckpoint, MockReviewTicket } from '../mockData';
+import { MockTeam, MockCheckpoint, MockReviewTicket, getTeamLeaderName } from '../mockData';
+export { getTeamLeaderName };
 import { api, getToken } from './api';
 export interface BonusAward {
   id: string;

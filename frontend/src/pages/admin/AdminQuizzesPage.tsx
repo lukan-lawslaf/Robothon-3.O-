@@ -507,7 +507,7 @@ export const AdminQuizzesPage: React.FC = () => {
             className="px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-[#ea580c] text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
           >
             <Zap size={13} className="text-[#ea580c]" />
-            <span>Quiz 2 (Hardware Priority)</span>
+            <span>Quiz 2 (Bonus Board)</span>
           </Link>
         </div>
 

@@ -9,6 +9,7 @@ export default defineConfig({
     entries: ['index.html'],
   },
   resolve: {
+    preserveSymlinks: true,
     alias: {
       '@': path.resolve(__dirname, './src'),
     },

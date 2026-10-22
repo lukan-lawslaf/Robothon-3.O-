@@ -82,6 +82,7 @@ export function parseRegistrationCsv(text: string): RegistrationTeam[] {
   if (teamNameCol === -1) teamNameCol = 1;
 
   const teams: RegistrationTeam[] = [];
+  const usedTeamIds = new Set<string>();
 
   for (let r = 0; r < dataRows.length; r++) {
     const rowData = dataRows[r];
@@ -119,7 +120,17 @@ export function parseRegistrationCsv(text: string): RegistrationTeam[] {
 
     const leader = members.find(m => m.role === 'LEADER') || null;
     const additionalMembers = members.filter(m => m.role !== 'LEADER');
-    const teamId = leader?.email ? 'grid-' + Math.abs(hashCode(leader.email.toLowerCase())).toString(16).slice(0, 16) : 'team-' + Math.abs(hashCode(teamName.toLowerCase())).toString(16).slice(0, 10);
+    const baseTeamId = leader?.email
+      ? 'grid-' + Math.abs(hashCode(leader.email.toLowerCase())).toString(16).slice(0, 16)
+      : 'team-' + Math.abs(hashCode(teamName.toLowerCase())).toString(16).slice(0, 10);
+
+    let teamId = baseTeamId;
+    let dupCounter = 1;
+    while (usedTeamIds.has(teamId)) {
+      dupCounter++;
+      teamId = `${baseTeamId}-${dupCounter}`;
+    }
+    usedTeamIds.add(teamId);
 
     teams.push({
       teamId,

@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
-import { MockReviewTicket, MockTeam } from '../../mockData';
+import React, { useState, useEffect } from 'react';
+import { MockReviewTicket, MockTeam, getTeamLeaderName } from '../../mockData';
 import {
   getStoredTickets,
   getStoredTeams,
@@ -248,18 +248,18 @@ export const AdminDashboard: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-amber-600 mb-1">
               <Zap size={18} />
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Round 2 Priority</span>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Round 2 Bonus</span>
             </div>
             <h3 className="font-bold text-[#1c140e] text-base">Quiz 2 Leaderboard</h3>
             <p className="text-xs text-stone-600 font-mono mt-1">
-              Bonus round scores and category hardware picking priority rankings.
+              Bonus round live scores and speed rankings.
             </p>
           </div>
           <Link
             to="/admin/quizzes/leaderboard/quiz-2"
             className="self-start px-4 py-2 rounded-xl bg-[#D4621A] hover:bg-[#b85214] text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
           >
-            <span>Quiz 2 Board & Priority</span>
+            <span>Quiz 2 Board</span>
             <ArrowRight size={13} />
           </Link>
         </div>
@@ -408,9 +408,20 @@ export const AdminDashboard: React.FC = () => {
 
               <form onSubmit={handleAwardBonus} className="grid grid-cols-1 gap-3">
                 <div>
-                  <label htmlFor="bonus-team" className="block text-[10px] uppercase font-mono text-[#251306]/70 font-semibold mb-1">
-                    Recipient Team
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="bonus-team" className="block text-[10px] uppercase font-mono text-[#251306]/70 font-semibold">
+                      Recipient Team
+                    </label>
+                    {(() => {
+                      const sel = teams.find(t => t.id === selectedTeamId);
+                      const lName = getTeamLeaderName(sel);
+                      return lName ? (
+                        <span className="text-[10px] font-mono font-bold text-[#D4621A] bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300/60 flex items-center gap-1 shadow-2xs">
+                          👑 Leader: <span className="underline">{lName}</span>
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
                   <select
                     id="bonus-team"
                     value={selectedTeamId}
@@ -419,9 +430,10 @@ export const AdminDashboard: React.FC = () => {
                   >
                     {teams.map((t) => {
                       const isDisq = Boolean(t.isDisqualified || t.debarred || t.qualificationStatus === 'DEBARRED' || (t as any).status === 'DISQUALIFIED');
+                      const lName = getTeamLeaderName(t);
                       return (
                         <option key={t.id} value={t.id} disabled={isDisq}>
-                          {t.teamName} ({t.totalPoints} pts){isDisq ? ' ❌ [DISQUALIFIED]' : ''}
+                          {t.teamName} {lName ? `[👑 Leader: ${lName}]` : ''} ({t.totalPoints} pts){isDisq ? ' ❌ [DISQUALIFIED]' : ''}
                         </option>
                       );
                     })}
@@ -484,20 +496,34 @@ export const AdminDashboard: React.FC = () => {
 
               <form onSubmit={handleDeductPoints} className="grid grid-cols-1 gap-3">
                 <div>
-                  <label htmlFor="deduct-team" className="block text-[10px] uppercase font-mono text-[#251306]/70 font-semibold mb-1">
-                    Target Team
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="deduct-team" className="block text-[10px] uppercase font-mono text-[#251306]/70 font-semibold">
+                      Target Team
+                    </label>
+                    {(() => {
+                      const sel = teams.find(t => t.id === deductTeamId);
+                      const lName = getTeamLeaderName(sel);
+                      return lName ? (
+                        <span className="text-[10px] font-mono font-bold text-red-700 bg-red-100/80 px-2 py-0.5 rounded-md border border-red-200 flex items-center gap-1 shadow-2xs">
+                          👑 Leader: <span className="underline">{lName}</span>
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
                   <select
                     id="deduct-team"
                     value={deductTeamId}
                     onChange={(e) => setDeductTeamId(e.target.value)}
                     className="w-full px-2.5 py-2 rounded-xl bg-white border border-stone-200 text-xs text-[#251306] focus:outline-none focus:border-red-500"
                   >
-                    {teams.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.teamName} ({t.totalPoints} pts)
-                      </option>
-                    ))}
+                    {teams.map((t) => {
+                      const lName = getTeamLeaderName(t);
+                      return (
+                        <option key={t.id} value={t.id}>
+                          {t.teamName} {lName ? `[👑 Leader: ${lName}]` : ''} ({t.totalPoints} pts)
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -561,20 +587,34 @@ export const AdminDashboard: React.FC = () => {
               )}
 
               <div>
-                <label htmlFor="log-team" className="block text-[10px] uppercase font-mono text-[#251306]/70 font-semibold mb-1">
-                  Select Team
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="log-team" className="block text-[10px] uppercase font-mono text-[#251306]/70 font-semibold">
+                    Select Team
+                  </label>
+                  {(() => {
+                    const sel = teams.find(t => t.id === logTeamId);
+                    const lName = getTeamLeaderName(sel);
+                    return lName ? (
+                      <span className="text-[10px] font-mono font-bold text-[#D4621A] bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300/60 flex items-center gap-1 shadow-2xs">
+                        👑 Leader: <span className="underline">{lName}</span>
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
                 <select
                   id="log-team"
                   value={logTeamId}
                   onChange={(e) => setLogTeamId(e.target.value)}
                   className="w-full px-2.5 py-2 rounded-xl bg-white border border-[#F4AE52]/60 text-xs text-[#251306] focus:outline-none focus:border-[#D4621A]"
                 >
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.teamName} ({t.totalPoints} pts)
-                    </option>
-                  ))}
+                  {teams.map((t) => {
+                    const lName = getTeamLeaderName(t);
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {t.teamName} {lName ? `[👑 Leader: ${lName}]` : ''} ({t.totalPoints} pts)
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
