@@ -21,6 +21,8 @@ export interface MockTeam {
   currentCheckpoint: string;
   isQualified: boolean;
   isEliminated?: boolean;
+  isDisqualified?: boolean;
+  debarred?: boolean;
   qualificationStatus?: string;
   leader?: TeamMemberInfo | null;
   members?: TeamMemberInfo[];

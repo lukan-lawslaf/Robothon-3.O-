@@ -10,6 +10,7 @@ import {
 } from '../../services/quizService';
 import { useAccount, isAdmin } from '../../services/authService';
 import {
+  Boxes,
   FileText,
   Sliders,
   Tv,
@@ -488,6 +489,36 @@ export const AdminQuizzesPage: React.FC = () => {
           </button>
         </div>
       )}
+
+      
+      {/* Quiz Leaderboards & Inventory Quick Links */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-[#F4AE52]/30 shadow-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono font-bold text-stone-500 uppercase tracking-wide">Separate Quiz Boards:</span>
+          <Link
+            to="/admin/quizzes/leaderboard/quiz-1"
+            className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
+          >
+            <Award size={13} className="text-emerald-600" />
+            <span>Quiz 1 (Elimination Board)</span>
+          </Link>
+          <Link
+            to="/admin/quizzes/leaderboard/quiz-2"
+            className="px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-[#ea580c] text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
+          >
+            <Zap size={13} className="text-[#ea580c]" />
+            <span>Quiz 2 (Hardware Priority)</span>
+          </Link>
+        </div>
+
+        <Link
+          to="/admin/inventory"
+          className="px-3.5 py-1.5 rounded-xl bg-[#1c140e] hover:bg-black text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-xs"
+        >
+          <Boxes size={14} className="text-[#ea580c]" />
+          <span>Parts Inventory</span>
+        </Link>
+      </div>
 
       {/* Quizzes Loading */}
       {loading && (

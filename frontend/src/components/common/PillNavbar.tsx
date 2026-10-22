@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Trophy, FileText, Flag, Shield, LogOut, Radio, Users } from 'lucide-react';
+import { Trophy, FileText, Flag, Shield, LogOut, Radio, Users, Boxes, Zap } from 'lucide-react';
 import { useAccount, isAdmin, logout } from '../../services/authService';
 
 interface Props {
@@ -84,6 +84,24 @@ export const PillNavbar: React.FC<Props> = ({ activeTab, onTabChange }) => {
                 >
                   <FileText size={16} />
                   <span>Quiz Ops</span>
+                </Link>
+              )}
+              {isAdmin(account) && (
+                <Link
+                  className={buttonClass(location.pathname === '/admin/inventory')}
+                  to="/admin/inventory"
+                >
+                  <Boxes size={16} />
+                  <span>Inventory</span>
+                </Link>
+              )}
+              {isAdmin(account) && (
+                <Link
+                  className={buttonClass(location.pathname.startsWith('/admin/quizzes/leaderboard'))}
+                  to="/admin/quizzes/leaderboard/quiz-1"
+                >
+                  <Zap size={16} className="text-[#ea580c]" />
+                  <span>Quiz Boards</span>
                 </Link>
               )}
             </>

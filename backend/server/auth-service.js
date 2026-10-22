@@ -31,6 +31,8 @@ export class AuthService {
       (a.id && a.id.toLowerCase() === search)
     ));
     if (!account || !matches(password, account)) throw new QuizError(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
+    account.hasLoggedIn = true;
+    account.lastLoginAt = new Date().toISOString();
     const admin = ['ADMIN', 'SUPER_ADMIN'].includes(account.role);
     if (portal && portal !== (admin ? 'admin' : 'participant')) throw new QuizError(403, 'WRONG_PORTAL', `Use the ${admin ? 'admin' : 'participant'} login for this account.`);
     const token = randomBytes(32).toString('hex');

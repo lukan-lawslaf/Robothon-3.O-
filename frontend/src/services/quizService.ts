@@ -68,6 +68,7 @@ export interface Attempt {
 
 export interface TemporaryLeaderboardRow {
   rank: number;
+  status?: string;
   teamId: string;
   teamName: string;
   score: number;

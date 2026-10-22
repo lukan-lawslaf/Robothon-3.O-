@@ -34,6 +34,14 @@ export class PlatformService {
     if (!context?.authenticated) throw new QuizError(401, 'UNAUTHENTICATED', 'Please sign in.');
     if (!['ADMIN', 'SUPER_ADMIN'].includes(context.role)) throw new QuizError(403, 'ADMIN_REQUIRED', 'Checkpoint administrator access is required.');
   }
+  isTeamDisqualified(teamId) {
+    const attempts = (this.store.state.attempts || []).filter(a => a.teamId === teamId);
+    if (attempts.some(a => a.debarred || a.qualificationStatus === 'DEBARRED')) return true;
+    const teamList = Array.isArray(this.state.teams) ? this.state.teams : Object.values(this.state.teams || {});
+    const team = teamList.find(t => t.id === teamId || t.teamId === teamId);
+    if (!team) return false;
+    return Boolean(team.disqualified || team.isDisqualified || team.debarred || team.status === 'DISQUALIFIED' || team.qualificationStatus === 'DEBARRED' || team.qualificationStatus === 'DISQUALIFIED');
+  }
   teams() {
     const teamList = (Array.isArray(this.state.teams) ? this.state.teams : Object.values(this.state.teams || {})).filter(team => team.id !== 'demo-participant-team' && team.teamName !== 'Demo Team' && !team.id?.startsWith('demo-'));
     const rosterList = this.store.state.registrationRoster || [];
@@ -56,9 +64,27 @@ export class PlatformService {
         return (q && (q.type === 'ELIMINATION' || q.id === 'quiz-1') && (q.status === 'FINALIZED' || q.status === 'RESULTS' || a.qualificationStatus === 'ELIMINATED' || a.qualificationStatus === 'QUALIFIED')) || a.qualificationStatus === 'ELIMINATED' || a.qualificationStatus === 'QUALIFIED';
       }).at(-1);
 
-      const qualificationStatus = elimination ? (elimination.qualificationStatus || 'PENDING') : (team.qualificationStatus || 'PENDING');
-      const isEliminated = qualificationStatus === 'ELIMINATED' || Boolean(team.isEliminated) || Boolean(team.eliminated);
-      const isQualified = qualificationStatus === 'QUALIFIED' || Boolean(team.isQualified);
+      const quiz1 = this.store.getQuiz('quiz-1') || this.store.getQuiz('elimination-2026');
+      const teamLogins = this.store.state.teamLogins || {};
+      const hasLoggedIn = Boolean(teamLogins[team.id] || team.hasLoggedIn || team.lastLoginAt);
+      const quiz1Attempt = attempts.find(a => (a.quizId === 'quiz-1' || a.quizId === 'elimination-2026') && !a.debarred);
+      const hasAttemptedQuiz1 = Boolean(quiz1Attempt && (quiz1Attempt.startedAt || (quiz1Attempt.status && quiz1Attempt.status !== 'NOT_ATTEMPTED')));
+
+      const quiz1Finished = Boolean(quiz1 && ['RESULTS', 'ENDED', 'FINALIZED'].includes(quiz1.status));
+      const neverLoggedInOrAttempted = !hasLoggedIn || !hasAttemptedQuiz1;
+
+      let qualificationStatus = elimination ? (elimination.qualificationStatus || 'PENDING') : (team.qualificationStatus || 'PENDING');
+      let isEliminated = qualificationStatus === 'ELIMINATED' || Boolean(team.isEliminated) || Boolean(team.eliminated);
+
+      // If Quiz 1 finished/finalized and team never logged in OR never attempted Quiz 1:
+      if ((quiz1Finished && neverLoggedInOrAttempted) || team.isEliminated || team.eliminated || team.qualificationStatus === 'ELIMINATED') {
+        qualificationStatus = 'ELIMINATED';
+        isEliminated = true;
+      }
+
+      const isDebarred = attempts.some(a => a.debarred || a.qualificationStatus === 'DEBARRED') || Boolean(team.debarred) || Boolean(team.disqualified) || qualificationStatus === 'DEBARRED';
+      const isDisqualified = isDebarred || Boolean(team.disqualified) || Boolean(team.isDisqualified) || qualificationStatus === 'DISQUALIFIED' || qualificationStatus === 'DEBARRED';
+      const isQualified = !isEliminated && (qualificationStatus === 'QUALIFIED' || Boolean(team.isQualified));
       const next = cps.find(c => c.status !== 'approved');
 
       const rosterEntry = rosterList.find(r => r.teamId === team.id);
@@ -73,9 +99,12 @@ export class PlatformService {
         miniGamePoints,
         totalPoints: checkpointPoints + quizPoints + miniGamePoints,
         currentCheckpoint: next ? ('Step ' + next.stepNumber + ': ' + next.title) : 'All Milestones Cleared!',
-        qualificationStatus,
-        isQualified,
+        qualificationStatus: isDisqualified ? 'DEBARRED' : qualificationStatus,
+        isQualified: !isDisqualified && isQualified,
         isEliminated,
+        isDebarred,
+        isDisqualified,
+        debarred: isDebarred,
         leader,
         members,
         allMembers
@@ -134,6 +163,9 @@ export class PlatformService {
     if (typeof approved !== 'boolean') throw new QuizError(422, 'INVALID_DECISION', 'Choose approve or reject.');
     const ticket = this.ticket(context, id);
     Object.assign(ticket, { assignedAdminId: context.userId, assignedAdmin: context.name || context.userId, status: approved ? 'approved' : 'rejected', reviewedAt: new Date().toISOString() });
+    if (approved && this.isTeamDisqualified(ticket.teamId)) {
+      throw new QuizError(400, 'TEAM_DISQUALIFIED', 'Cannot award checkpoint points to a disqualified team.');
+    }
     const cps = this.state.checkpoints[ticket.teamId];
     const index = cps.findIndex(c => c.id === ticket.checkpointId);
     cps[index].status = approved ? 'approved' : 'available';
@@ -143,6 +175,9 @@ export class PlatformService {
   }
   bonus(context, { teamId, gameName, points }) {
     this.admin(context);
+    if (this.isTeamDisqualified(teamId)) {
+      throw new QuizError(400, 'TEAM_DISQUALIFIED', 'Cannot allocate bonus points to a disqualified team.');
+    }
     const teamList = Array.isArray(this.state.teams) ? this.state.teams : Object.values(this.state.teams || {});
     if (!teamList.some(t => t.id === teamId)) throw new QuizError(404, 'TEAM_NOT_FOUND', 'Team was not found.');
     if (!gameName?.trim() || !Number.isInteger(points) || points < 1 || points > 50) throw new QuizError(422, 'INVALID_BONUS', 'Enter an activity and 1–50 whole points.');

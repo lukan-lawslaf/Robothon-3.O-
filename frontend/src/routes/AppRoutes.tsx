@@ -14,6 +14,9 @@ import { ArenaStagePresenterPage } from '../pages/admin/ArenaStagePresenterPage'
 import { LiveMissionControlPage } from '../pages/admin/LiveMissionControlPage';
 import { ResultsAuditPage } from '../pages/admin/ResultsAuditPage';
 import { TeamRegistrationsPage } from '../pages/admin/TeamRegistrationsPage';
+import { AdminInventoryPage } from '../pages/admin/AdminInventoryPage';
+import { Quiz1LeaderboardPage } from '../pages/admin/Quiz1LeaderboardPage';
+import { Quiz2LeaderboardPage } from '../pages/admin/Quiz2LeaderboardPage';
 import { SubsystemKey } from '../components/bot/Bot3DViewer';
 import { useAccount, isAdmin } from '../services/authService';
 import { getToken } from '../services/api';
@@ -90,12 +93,24 @@ export const AppRoutes: React.FC<Props> = (props) => {
         element={isAdmin(account) ? <TeamRegistrationsPage /> : <Navigate to={home} replace />}
       />
       <Route
+        path="/admin/inventory"
+        element={isAdmin(account) ? <AdminInventoryPage /> : <Navigate to={home} replace />}
+      />
+      <Route
         path="/admin-dashboard"
         element={isAdmin(account) ? <AdminDashboard /> : <Navigate to={home} replace />}
       />
       <Route
         path="/admin/quizzes"
         element={isAdmin(account) ? <AdminQuizzesPage /> : <Navigate to={home} replace />}
+      />
+      <Route
+        path="/admin/quizzes/leaderboard/quiz-1"
+        element={<Quiz1LeaderboardPage />}
+      />
+      <Route
+        path="/admin/quizzes/leaderboard/quiz-2"
+        element={<Quiz2LeaderboardPage />}
       />
       <Route
         path="/admin/quizzes/builder"

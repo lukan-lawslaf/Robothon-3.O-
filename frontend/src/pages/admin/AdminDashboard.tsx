@@ -15,7 +15,7 @@ import {
 } from '../../services/backendService';
 import { Link } from 'react-router-dom';
 import { useAccount } from '../../services/authService';
-import { Clock, Gamepad2, MinusCircle, Trash2, History } from 'lucide-react';
+import { Clock, Gamepad2, MinusCircle, Trash2, History, Boxes, Trophy, Zap, ArrowRight } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const [tickets, setTickets] = useState<MockReviewTicket[]>([]);
@@ -79,6 +79,11 @@ export const AdminDashboard: React.FC = () => {
   const handleAwardBonus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTeamId || !gameName) return;
+    const targetTeam = teams.find(t => t.id === selectedTeamId);
+    if (targetTeam && (targetTeam.isDisqualified || targetTeam.debarred || targetTeam.qualificationStatus === 'DEBARRED' || (targetTeam as any).status === 'DISQUALIFIED')) {
+      setError('Cannot allocate bonus points to a disqualified team.');
+      return;
+    }
     try {
       setIsAwarding(true); setError('');
       const res = await addMiniGamePoints(selectedTeamId, gameName, Number(bonusPoints));
@@ -196,6 +201,70 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {error && <p role="alert" className="bg-red-50 text-red-800 p-3 rounded-xl mt-4">{error}</p>}
+      
+      {/* Event Operations Hub: Inventory & Separate Quiz Leaderboards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div className="p-5 rounded-2xl bg-white border border-orange-200 shadow-sm flex flex-col justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-[#ea580c] mb-1">
+              <Boxes size={18} />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Physical Hardware</span>
+            </div>
+            <h3 className="font-bold text-[#1c140e] text-base">Parts Inventory</h3>
+            <p className="text-xs text-stone-600 font-mono mt-1">
+              Import Excel catalogs, allocate motors/sensors to teams, and manage physical stock.
+            </p>
+          </div>
+          <Link
+            to="/admin/inventory"
+            className="self-start px-4 py-2 rounded-xl bg-[#1c140e] hover:bg-black text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <span>Manage Inventory</span>
+            <ArrowRight size={13} />
+          </Link>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white border border-emerald-200 shadow-sm flex flex-col justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-emerald-600 mb-1">
+              <Trophy size={18} />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Round 1</span>
+            </div>
+            <h3 className="font-bold text-[#1c140e] text-base">Quiz 1 Leaderboard</h3>
+            <p className="text-xs text-stone-600 font-mono mt-1">
+              Elimination round standings with Top-40 cutoff and qualified/eliminated indicators.
+            </p>
+          </div>
+          <Link
+            to="/admin/quizzes/leaderboard/quiz-1"
+            className="self-start px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <span>Quiz 1 Board</span>
+            <ArrowRight size={13} />
+          </Link>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white border border-amber-200 shadow-sm flex flex-col justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-amber-600 mb-1">
+              <Zap size={18} />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Round 2 Priority</span>
+            </div>
+            <h3 className="font-bold text-[#1c140e] text-base">Quiz 2 Leaderboard</h3>
+            <p className="text-xs text-stone-600 font-mono mt-1">
+              Bonus round scores and category hardware picking priority rankings.
+            </p>
+          </div>
+          <Link
+            to="/admin/quizzes/leaderboard/quiz-2"
+            className="self-start px-4 py-2 rounded-xl bg-[#D4621A] hover:bg-[#b85214] text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <span>Quiz 2 Board & Priority</span>
+            <ArrowRight size={13} />
+          </Link>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
         {[['Registered teams', teams.length], ['Open reviews', pendingTickets.length], ['Assigned to me', myTickets.length], ['Approved reviews', tickets.filter(t => t.status === 'approved').length]].map(([label, value]) => <div key={label} className="rounded-2xl bg-white border border-orange-200 p-4"><p className="text-xs text-stone-600">{label}</p><p className="text-2xl font-bold text-[#D4621A] mt-1">{value}</p></div>)}
       </div>
@@ -348,11 +417,14 @@ export const AdminDashboard: React.FC = () => {
                     onChange={(e) => setSelectedTeamId(e.target.value)}
                     className="w-full px-2.5 py-2 rounded-xl bg-white border border-[#F4AE52]/60 text-xs text-[#251306] focus:outline-none focus:border-[#D4621A]"
                   >
-                    {teams.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.teamName} ({t.totalPoints} pts)
-                      </option>
-                    ))}
+                    {teams.map((t) => {
+                      const isDisq = Boolean(t.isDisqualified || t.debarred || t.qualificationStatus === 'DEBARRED' || (t as any).status === 'DISQUALIFIED');
+                      return (
+                        <option key={t.id} value={t.id} disabled={isDisq}>
+                          {t.teamName} ({t.totalPoints} pts){isDisq ? ' ❌ [DISQUALIFIED]' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 

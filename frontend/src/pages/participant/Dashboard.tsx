@@ -5,6 +5,7 @@ import { applyForCheckpointReview } from '../../services/backendService';
 import { useAccount } from '../../services/authService';
 import { Bot3DViewer, SubsystemKey } from '../../components/bot/Bot3DViewer';
 import { TeamScoredItemsList } from '../../components/participant/TeamScoredItemsList';
+import { TeamInventoryCard } from '../../components/participant/TeamInventoryCard';
 import { LiveQuizPanel } from '../../components/participant/LiveQuizPanel';
 import { ParticipantQuizStatus } from '../../components/participant/ParticipantQuizStatus';
 import { Quiz } from '../../services/quizService';
@@ -258,6 +259,7 @@ export const ParticipantDashboard: React.FC<Props> = ({
             </div>
           </div>
         </div>
+        <TeamInventoryCard teamId={account?.teamId} teamName={team?.teamName || account?.teamName} />
         <TeamScoredItemsList team={team} checkpoints={checkpoints} quizzes={participantQuizzes} />
       </div>
     </div>

@@ -9,6 +9,7 @@ import { PlatformService } from './platform-service.js';
 import { supabaseClients, SupabaseAuthService } from './supabase.js';
 import { SupabaseQuizStore } from './supabase-store.js';
 import { extractTeamsFromCsv } from './registration-parser.js';
+import { InventoryService } from './inventory-service.js';
 
 const serverBootId = 'boot_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 const backendRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -70,6 +71,7 @@ export function createApp({ store: rootStore, accounts = rootStore.accounts || [
     let store = rootStore;
     let service = new QuizService(store, { publish: queueEvent });
     let platform = new PlatformService(store, accounts);
+    let inventory = new InventoryService(store, { publish: queueEvent, clock: () => Date.now() });
     const needsState = req.url.startsWith('/api/') && (!req.url.startsWith('/api/auth/') || req.url.startsWith('/api/auth/logout')) && !req.url.startsWith('/api/demo/') && !req.url.startsWith('/api/events');
     const json = async (status, value) => {
       if (needsState) await (store.commit ? store.commit() : store.save());
@@ -90,11 +92,25 @@ export function createApp({ store: rootStore, accounts = rootStore.accounts || [
       const method = req.method;
       if (url.pathname === '/api/demo/accounts') return await json(404, { error: 'NOT_FOUND', message: 'Route was not found.' });
       const publicPath = ['/api/auth/login', '/api/auth/refresh', '/api/auth/verify-pin', '/api/auth/pin-status', '/api/demo/login', '/api/events', '/api/leaderboard', '/api/quizzes/active'].includes(url.pathname)
-        || (method === 'GET' && /^\/api\/quizzes\/[^/]+\/(leaderboard|results|stage)$/.test(url.pathname));
+        || (method === 'GET' && /^\/api\/quizzes\/[^/]+\/(leaderboard|results|stage|category-priority)$/.test(url.pathname));
       const identity = parts[0] === 'api' && !publicPath ? await auth.resolve(req) : null;
       const context = () => identity;
       if (url.pathname === '/health') return await json(200, { ok: true });
-      if (method === 'POST' && ['/api/auth/login', '/api/demo/login'].includes(url.pathname)) return await json(200, await auth.login(await body(req)));
+      if (method === 'POST' && ['/api/auth/login', '/api/demo/login'].includes(url.pathname)) {
+        const loginRes = await auth.login(await body(req));
+        if (loginRes?.account?.teamId) {
+          store.state.teamLogins ??= {};
+          store.state.teamLogins[loginRes.account.teamId] = true;
+          const platformTeams = store.state.platform?.teams || [];
+          const t = platformTeams.find(x => x.id === loginRes.account.teamId || x.teamId === loginRes.account.teamId);
+          if (t) {
+            t.hasLoggedIn = true;
+            t.lastLoginAt = new Date().toISOString();
+          }
+          await (store.commit ? store.commit() : store.save());
+        }
+        return await json(200, loginRes);
+      }
       if (method === 'POST' && url.pathname === '/api/auth/refresh') {
         if (!auth.refresh) throw new QuizError(401, 'SESSION_EXPIRED', 'Please sign in again.');
         return await json(200, await auth.refresh(await body(req)));
@@ -139,6 +155,41 @@ export function createApp({ store: rootStore, accounts = rootStore.accounts || [
       if (method === 'POST' && url.pathname === '/api/admin/minigames/award') return await json(200, platform.bonus(context(), await body(req)));
       if (method === 'POST' && url.pathname === '/api/admin/minigames/deduct') return await json(200, platform.deductPoints(context(), await body(req)));
       if (method === 'POST' && url.pathname === '/api/admin/marks/remove') return await json(200, platform.removeMark(context(), await body(req)));
+            // Inventory Routes
+      if (parts[0] === 'api' && parts[1] === 'inventory') {
+        const action = parts[2];
+        if (!action && method === 'GET') {
+          return await json(200, inventory.getInventory(context()));
+        }
+        if (action === 'import' && method === 'POST') {
+          return await json(200, inventory.importInventory(context(), await body(req)));
+        }
+        if (action === 'allocate' && method === 'POST') {
+          return await json(200, inventory.allocate(context(), await body(req)));
+        }
+        if (action === 'adjust' && method === 'POST') {
+          return await json(200, inventory.adjust(context(), await body(req)));
+        }
+        if (action === 'reset-allocations' && method === 'POST') {
+          return await json(200, inventory.resetAllocations(context()));
+        }
+        if (action === 'clear-all' && method === 'POST') {
+          return await json(200, inventory.clearAllInventory(context()));
+        }
+        if (action === 'team-inventory' && method === 'GET') {
+          const reqTeamId = url.searchParams.get('teamId');
+          return await json(200, inventory.getTeamInventory(context(), reqTeamId));
+        }
+        if (action === 'team-allocations' && parts[3] && method === 'GET') {
+          return await json(200, inventory.getTeamInventory(context(), parts[3]));
+        }
+      }
+
+      // Quiz Category Priority Route
+      if (parts[0] === 'api' && parts[1] === 'quizzes' && parts[3] === 'category-priority' && method === 'GET') {
+        return await json(200, inventory.getCategoryPriority(context(), parts[2]));
+      }
+
       if (method === 'GET' && url.pathname === '/api/quizzes/active') return await json(200, { quizzes: store.state.quizzes.filter(q => q.status !== 'DRAFT').map(q => service.publicQuiz(q)) });
       if (parts[0] === 'api' && parts[1] === 'quizzes') {
         const id = parts[2], action = parts[3];
@@ -158,6 +209,42 @@ export function createApp({ store: rootStore, accounts = rootStore.accounts || [
       if (parts[0] === 'api' && parts[1] === 'admin') {
         const admin = context();
         service.adminOrThrow(admin);
+
+        if (parts[2] === 'teams' && parts[3] === 'eliminate-unattempted' && method === 'POST') {
+          service.eliminateUnattemptedTeams('quiz-1');
+          await (store.commit ? store.commit() : store.save());
+          return await json(200, { success: true, teams: platform.teams() });
+        }
+        if (parts[2] === 'teams' && parts[4] === 'qualify' && method === 'POST') {
+          const teamId = decodeURIComponent(parts[3]);
+          const input = await body(req);
+          const res = service.qualifyTeam(admin, 'quiz-1', teamId, input);
+          return await json(200, res);
+        }
+        if (parts[2] === 'teams' && parts[4] === 'disqualify' && method === 'POST') {
+          const teamId = decodeURIComponent(parts[3]);
+          const bodyInput = await body(req);
+          store.state.disqualifiedTeams ??= [];
+          const isDisq = bodyInput.disqualified !== false;
+          if (isDisq) {
+            if (!store.state.disqualifiedTeams.includes(teamId)) store.state.disqualifiedTeams.push(teamId);
+          } else {
+            store.state.disqualifiedTeams = store.state.disqualifiedTeams.filter(id => id !== teamId);
+          }
+          const platformTeams = store.state.platform?.teams || [];
+          const matched = platformTeams.find(t => t.id === teamId || t.teamId === teamId);
+          if (matched) {
+            matched.disqualified = isDisq;
+            matched.isDisqualified = isDisq;
+            matched.debarred = isDisq;
+          }
+          (store.state.attempts || []).filter(a => a.teamId === teamId).forEach(a => {
+            a.debarred = isDisq;
+            if (isDisq) a.qualificationStatus = 'DEBARRED';
+          });
+          await (store.commit ? store.commit() : store.save());
+          return await json(200, { success: true, teamId, disqualified: isDisq });
+        }
                 if (parts[2] === 'registrations') {
           // Remove single team from database and roster
           if (parts[3] === 'teams' && parts[4] && method === 'DELETE') {

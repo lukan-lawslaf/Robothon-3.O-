@@ -264,12 +264,39 @@ export class QuizService {
   pause(context, quizId) { return this.transitionAdmin(context, quizId, 'PAUSED', ['LIVE'], 'QUIZ_PAUSED'); }
   resume(context, quizId) { return this.transitionAdmin(context, quizId, 'LIVE', ['PAUSED'], 'QUIZ_RESUMED'); }
   end(context, quizId) { this.adminOrThrow(context); const quiz = this.quizOrThrow(quizId); if (!['LIVE', 'PAUSED'].includes(quiz.status)) throw new QuizError(409, 'INVALID_STATE', 'Only LIVE or PAUSED quizzes can end.'); return this.endQuizInternal(quiz); }
-  endQuizInternal(quiz) { quiz.status = 'RESULTS'; quiz.endedAt = nowIso(this.clock); quiz.stageState = { stage: 'COMPLETED', questionIndex: 0, remainingSeconds: 0, updatedAt: nowIso(this.clock) }; this.store.state.attempts.filter(a => a.quizId === quiz.id && a.status === 'ACTIVE').forEach(a => { this.evaluate(quiz, a); this.emit('FORCE_SUBMIT', { quizId: quiz.id, teamId: a.teamId, attemptId: a.id }); }); this.store.save(); this.emit('QUIZ_ENDED', { quiz: this.publicQuiz(quiz) }); this.emit('STAGE_UPDATE', { quizId: quiz.id, stageState: quiz.stageState }); return { quiz: this.publicQuiz(quiz) }; }
+  endQuizInternal(quiz) { quiz.status = 'RESULTS'; quiz.endedAt = nowIso(this.clock); quiz.stageState = { stage: 'COMPLETED', questionIndex: 0, remainingSeconds: 0, updatedAt: nowIso(this.clock) }; this.store.state.attempts.filter(a => a.quizId === quiz.id && a.status === 'ACTIVE').forEach(a => { this.evaluate(quiz, a); this.emit('FORCE_SUBMIT', { quizId: quiz.id, teamId: a.teamId, attemptId: a.id }); }); if (quiz.id === 'quiz-1' || quiz.type === 'ELIMINATION') {
+      this.eliminateUnattemptedTeams(quiz.id);
+    }
+    this.store.save(); this.emit('QUIZ_ENDED', { quiz: this.publicQuiz(quiz) }); this.emit('STAGE_UPDATE', { quizId: quiz.id, stageState: quiz.stageState }); return { quiz: this.publicQuiz(quiz) }; }
   transitionAdmin(context, quizId, status, allowed, eventType) { this.adminOrThrow(context); const quiz = this.quizOrThrow(quizId); if (!allowed.includes(quiz.status)) throw new QuizError(409, 'INVALID_STATE', `Quiz cannot transition from ${quiz.status} to ${status}.`); quiz.status = status; this.store.save(); this.emit(eventType, { quiz: this.publicQuiz(quiz) }); return { quiz: this.publicQuiz(quiz) }; }
   leaderboard(quizId) {
     const quiz = this.quizOrThrow(quizId);
     if (quiz.leaderboardMode === 'HIDDEN' || (!quiz.showLiveScores && ['LIVE', 'PAUSED'].includes(quiz.status))) return { quizId, mode: 'HIDDEN', rows: [] };
-    const allAttempts = this.store.state.attempts.filter(a => a.quizId === quizId);
+    const allAttempts = [...this.store.state.attempts.filter(a => a.quizId === quizId)];
+    if ((quizId === 'quiz-1' || quiz.type === 'ELIMINATION') && ['RESULTS', 'ENDED', 'FINALIZED'].includes(quiz.status)) {
+      const platformTeams = Array.isArray(this.store.state.platform?.teams) ? this.store.state.platform.teams : Object.values(this.store.state.platform?.teams || {});
+      const attemptedIds = new Set(allAttempts.map(a => a.teamId));
+      const teamLogins = this.store.state.teamLogins || {};
+      for (const t of platformTeams) {
+        if (!t.id || t.id === 'demo-participant-team' || t.name === 'Demo Team' || t.teamName === 'Demo Team') continue;
+        if (!attemptedIds.has(t.id)) {
+          const hasLoggedIn = Boolean(teamLogins[t.id] || t.hasLoggedIn || t.lastLoginAt);
+          allAttempts.push({
+            id: `att-unattempted-${quizId}-${t.id}`,
+            quizId,
+            teamId: t.id,
+            teamName: t.teamName || t.name || t.id,
+            score: 0,
+            timeTakenSeconds: 0,
+            status: 'NOT_ATTEMPTED',
+            debarred: false,
+            qualificationStatus: 'ELIMINATED',
+            manualQualification: 'ELIMINATED',
+            manualQualificationReason: !hasLoggedIn ? 'Eliminated: Account never logged in' : 'Eliminated: Quiz 1 never attempted'
+          });
+        }
+      }
+    }
     const sorted = [...allAttempts].sort((a, b) => {
       if (a.debarred && !b.debarred) return 1;
       if (!a.debarred && b.debarred) return -1;
@@ -331,8 +358,24 @@ export class QuizService {
     this.adminOrThrow(context);
     const quiz = this.quizOrThrow(quizId);
     if (quiz.status === 'FINALIZED') throw new QuizError(409, 'QUIZ_FINALIZED', 'Score adjustments are locked after quiz finalization.');
-    const attempt = this.store.getAttempt(quizId, teamId);
-    if (!attempt) throw new QuizError(404, 'ATTEMPT_NOT_FOUND', 'Attempt was not found for this team.');
+    let attempt = this.store.getAttempt(quizId, teamId);
+    if (!attempt) {
+      const platformTeams = this.store.state.platform?.teams || [];
+      const teamList = Array.isArray(platformTeams) ? platformTeams : Object.values(platformTeams || {});
+      const matched = teamList.find(t => t.id === teamId || t.teamId === teamId);
+      attempt = {
+        id: `att-${quizId}-${teamId}`,
+        quizId,
+        teamId,
+        teamName: matched?.name || matched?.teamName || teamId,
+        status: 'NOT_ATTEMPTED',
+        score: 0,
+        timeTakenSeconds: 0,
+        startedAt: null,
+        submittedAt: null
+      };
+      this.store.state.attempts.push(attempt);
+    }
     const currentScore = Number.isFinite(attempt.score) ? attempt.score : 0;
     let nextScore;
     let delta;
@@ -371,17 +414,34 @@ export class QuizService {
   debarTeam(context, quizId, teamId, patch = {}) {
     this.adminOrThrow(context);
     const quiz = this.quizOrThrow(quizId);
-    if (quiz.status === 'FINALIZED') throw new QuizError(409, 'QUIZ_FINALIZED', 'Team debarment cannot be changed after quiz finalization.');
-    const attempt = this.store.getAttempt(quizId, teamId);
-    if (!attempt) throw new QuizError(404, 'ATTEMPT_NOT_FOUND', 'Attempt was not found for this team.');
-    const debar = patch.debarred !== undefined ? Boolean(patch.debarred) : !attempt.debarred;
-    attempt.debarred = debar;
-    if (debar) {
-      attempt.qualificationStatus = 'DEBARRED';
-      attempt.debarReason = (patch.reason || '').trim() || 'Debarred for competition rules infraction.';
+    // Allow debarment updates even after finalization for live event integrity
+    let attempt = this.store.getAttempt(quizId, teamId);
+    if (!attempt) {
+      const platformTeams = this.store.state.platform?.teams || [];
+      const matched = platformTeams.find(t => t.id === teamId || t.teamId === teamId);
+      attempt = {
+        id: `att-${quizId}-${teamId}`,
+        quizId,
+        teamId,
+        teamName: matched?.teamName || matched?.name || teamId,
+        status: 'DEBARRED',
+        score: 0,
+        debarred: true,
+        debarReason: (patch.reason || '').trim() || 'Debarred for competition rules infraction.',
+        qualificationStatus: 'DEBARRED',
+        startedAt: nowIso(this.clock)
+      };
+      this.store.state.attempts.push(attempt);
     } else {
-      attempt.qualificationStatus = 'PENDING';
-      attempt.debarReason = null;
+      const debar = patch.debarred !== undefined ? Boolean(patch.debarred) : !attempt.debarred;
+      attempt.debarred = debar;
+      if (debar) {
+        attempt.qualificationStatus = 'DEBARRED';
+        attempt.debarReason = (patch.reason || '').trim() || 'Debarred for competition rules infraction.';
+      } else {
+        attempt.qualificationStatus = 'PENDING';
+        attempt.debarReason = null;
+      }
     }
     this.store.save();
     this.emit('ATTEMPT_UPDATED', { quizId, teamId, debarred: attempt.debarred, qualificationStatus: attempt.qualificationStatus });
@@ -411,6 +471,65 @@ export class QuizService {
     return { success: true, attempt: this.publicAttempt(attempt), leaderboard: this.leaderboard(quizId) };
   }
   invalidateSession(context, quizId, teamId) { this.adminOrThrow(context); this.quizOrThrow(quizId); const attempt = this.store.getAttempt(quizId, teamId); if (!attempt || attempt.status !== 'ACTIVE') throw new QuizError(404, 'ATTEMPT_NOT_ACTIVE', 'There is no active attempt for this team.'); attempt.sessionId = null; attempt.sessionInvalidated = true; this.store.save(); this.emit('SESSION_INVALIDATED', { quizId, teamId, attemptId: attempt.id }); return { invalidated: true, attemptId: attempt.id }; }
+
+  eliminateUnattemptedTeams(quizId = 'quiz-1') {
+    const platformTeams = Array.isArray(this.store.state.platform?.teams)
+      ? this.store.state.platform.teams
+      : Object.values(this.store.state.platform?.teams || {});
+    const roster = this.store.state.registrationRoster || [];
+    const accounts = this.store.accounts || [];
+    const allTeamIds = new Set([
+      ...platformTeams.map(t => t.id || t.teamId),
+      ...roster.map(r => r.teamId),
+      ...accounts.map(a => a.teamId)
+    ].filter(Boolean));
+
+    const attemptedTeamIds = new Set(
+      this.store.state.attempts
+        .filter(a => (a.quizId === quizId || (quizId === 'quiz-1' && a.quizId === 'elimination-2026')) && a.status !== 'NOT_ATTEMPTED')
+        .map(a => a.teamId)
+    );
+    const teamLogins = this.store.state.teamLogins || {};
+
+    for (const tId of allTeamIds) {
+      if (tId === 'demo-participant-team') continue;
+      const hasAttempted = attemptedTeamIds.has(tId);
+      const pTeam = platformTeams.find(t => t.id === tId || t.teamId === tId);
+      const hasLoggedIn = Boolean(teamLogins[tId] || pTeam?.hasLoggedIn || pTeam?.lastLoginAt);
+
+      if (!hasAttempted || !hasLoggedIn) {
+        let attempt = this.store.getAttempt(quizId, tId);
+        if (!attempt) {
+          const teamObj = pTeam || roster.find(r => r.teamId === tId);
+          attempt = {
+            id: `att-${quizId}-${tId}`,
+            quizId,
+            teamId: tId,
+            teamName: teamObj?.name || teamObj?.teamName || tId,
+            status: 'NOT_ATTEMPTED',
+            score: 0,
+            timeTakenSeconds: 0,
+            startedAt: null,
+            submittedAt: null
+          };
+          this.store.state.attempts.push(attempt);
+        }
+        attempt.qualificationStatus = 'ELIMINATED';
+        attempt.manualQualification = 'ELIMINATED';
+        attempt.manualQualificationReason = !hasLoggedIn
+          ? 'Eliminated: Account never logged in'
+          : 'Eliminated: Never attempted Quiz 1';
+
+        if (pTeam) {
+          pTeam.qualificationStatus = 'ELIMINATED';
+          pTeam.isEliminated = true;
+          pTeam.eliminated = true;
+          pTeam.eliminationReason = attempt.manualQualificationReason;
+        }
+      }
+    }
+  }
+
   finalize(context, quizId) {
     this.adminOrThrow(context);
     const quiz = this.quizOrThrow(quizId);
@@ -442,6 +561,9 @@ export class QuizService {
     quiz.finalizedAt = nowIso(this.clock);
     this.store.save();
     this.emit('QUALIFICATION_FINALIZED', { quiz: this.publicQuiz(quiz) });
+    if (quiz.id === 'quiz-1' || quiz.type === 'ELIMINATION') {
+      this.eliminateUnattemptedTeams(quizId);
+    }
     this.emit('LEADERBOARD_UPDATED', { quizId });
     return { quiz: this.publicQuiz(quiz), leaderboard: this.leaderboard(quizId) };
   }
@@ -456,6 +578,16 @@ export class QuizService {
     const attemptIdsToRemove = new Set(this.store.state.attempts.filter(a => a.quizId === quizId).map(a => a.id));
     this.store.state.attempts = this.store.state.attempts.filter(a => a.quizId !== quizId);
     this.store.state.answers = this.store.state.answers.filter(a => !attemptIdsToRemove.has(a.attemptId) && a.quizId !== quizId);
+    if (quizId === 'quiz-1' || quiz.type === 'ELIMINATION') {
+      const platformTeams = this.store.state.platform?.teams || [];
+      const teamList = Array.isArray(platformTeams) ? platformTeams : Object.values(platformTeams || {});
+      teamList.forEach(t => {
+        delete t.isEliminated;
+        delete t.eliminated;
+        delete t.eliminationReason;
+        delete t.qualificationStatus;
+      });
+    }
     this.store.save();
     this.emit('QUIZ_RESET', { quiz: this.publicQuiz(quiz) });
     this.emit('STAGE_UPDATE', { quizId, stageState: quiz.stageState });
