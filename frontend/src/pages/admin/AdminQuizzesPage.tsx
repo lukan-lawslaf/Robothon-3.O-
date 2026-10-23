@@ -49,10 +49,10 @@ export const AdminQuizzesPage: React.FC = () => {
 
   // Advanced Settings Modal State
   const [settingsQuiz, setSettingsQuiz] = useState<Quiz | null>(null);
-  const [settingsMinutes, setSettingsMinutes] = useState<number>(30);
-  const [settingsPerQuestion, setSettingsPerQuestion] = useState<number>(45);
-  const [settingsPreQuizCountdown, setSettingsPreQuizCountdown] = useState<number>(10);
-  const [settingsCutoff, setSettingsCutoff] = useState<number>(40);
+  const [settingsMinutes, setSettingsMinutes] = useState<number | ''>(30);
+  const [settingsPerQuestion, setSettingsPerQuestion] = useState<number | ''>(35);
+  const [settingsPreQuizCountdown, setSettingsPreQuizCountdown] = useState<number | ''>(10);
+  const [settingsCutoff, setSettingsCutoff] = useState<number | ''>(40);
   const [settingsQuestionCount, setSettingsQuestionCount] = useState<number>(0);
   const [settingsSaving, setSettingsSaving] = useState(false);
 
@@ -253,8 +253,8 @@ export const AdminQuizzesPage: React.FC = () => {
   const handleOpenSettings = async (quiz: Quiz) => {
     setSettingsQuiz(quiz);
     setSettingsMinutes(Math.round((quiz.durationSeconds || 1800) / 60));
-    setSettingsPerQuestion(quiz.perQuestionSeconds || 45);
-    setSettingsPreQuizCountdown(quiz.preQuizCountdownSeconds || 10);
+    setSettingsPerQuestion(quiz.perQuestionSeconds || 35);
+    setSettingsPreQuizCountdown(quiz.preQuizCountdownSeconds ?? 10);
     setSettingsCutoff(quiz.qualificationCount ?? 40);
     try {
       const qRes = await quizService.adminQuestions(quiz.id);
@@ -267,17 +267,34 @@ export const AdminQuizzesPage: React.FC = () => {
   // 8. Save Advanced Settings
   const handleSaveSettings = async () => {
     if (!settingsQuiz) return;
-    if (settingsMinutes <= 0 || (settingsQuiz.id === 'quiz-1' && settingsCutoff <= 0)) {
-      setError('Please provide valid positive numbers for all configuration fields.');
+    const minutes = Number(settingsMinutes);
+    const perQ = Number(settingsPerQuestion);
+    const preQuiz = Number(settingsPreQuizCountdown);
+    const cutoff = Number(settingsCutoff);
+
+    if (isNaN(minutes) || minutes <= 0) {
+      setError('Please provide a valid total duration in minutes.');
+      return;
+    }
+    if (isNaN(perQ) || perQ < 5) {
+      setError('Per-question countdown must be at least 5 seconds.');
+      return;
+    }
+    if (isNaN(preQuiz) || preQuiz < 0) {
+      setError('Pre-quiz countdown must be 0 or more seconds.');
+      return;
+    }
+    if (settingsQuiz.id === 'quiz-1' && (isNaN(cutoff) || cutoff <= 0)) {
+      setError('Please provide a valid qualification cutoff count.');
       return;
     }
     setSettingsSaving(true);
     try {
       await quizService.updateConfig(settingsQuiz.id, {
-        durationSeconds: settingsMinutes * 60,
-        perQuestionSeconds: settingsPerQuestion,
-        preQuizCountdownSeconds: settingsPreQuizCountdown,
-        qualificationCount: settingsQuiz.id === 'quiz-1' ? settingsCutoff : settingsQuiz.qualificationCount,
+        durationSeconds: minutes * 60,
+        perQuestionSeconds: perQ,
+        preQuizCountdownSeconds: preQuiz,
+        qualificationCount: settingsQuiz.id === 'quiz-1' ? cutoff : settingsQuiz.qualificationCount,
         forceLiveEdit: true
       });
       setNotice(`Advanced settings updated for "${settingsQuiz.name}".`);
@@ -888,10 +905,18 @@ export const AdminQuizzesPage: React.FC = () => {
                     min="1"
                     max="180"
                     value={settingsMinutes}
-                    onChange={(e) => setSettingsMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSettingsMinutes(v === '' ? '' : parseInt(v, 10));
+                    }}
+                    onBlur={() => {
+                      const n = Number(settingsMinutes);
+                      if (!n || n < 1) setSettingsMinutes(1);
+                      else if (n > 180) setSettingsMinutes(180);
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#D4621A] text-sm font-sans"
                   />
-                  <span className="text-stone-500 text-xs shrink-0">= {settingsMinutes * 60} seconds</span>
+                  <span className="text-stone-500 text-xs shrink-0">= {(Number(settingsMinutes) || 0) * 60} seconds</span>
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">Authoritative maximum deadline for this round.</p>
               </div>
@@ -903,10 +928,18 @@ export const AdminQuizzesPage: React.FC = () => {
                 </label>
                 <input
                   type="number"
-                  min="10"
+                  min="5"
                   max="300"
                   value={settingsPerQuestion}
-                  onChange={(e) => setSettingsPerQuestion(Math.max(5, parseInt(e.target.value) || 30))}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSettingsPerQuestion(v === '' ? '' : parseInt(v, 10));
+                  }}
+                  onBlur={() => {
+                    const n = Number(settingsPerQuestion);
+                    if (!n || n < 5) setSettingsPerQuestion(5);
+                    else if (n > 300) setSettingsPerQuestion(300);
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#D4621A] text-sm font-sans"
                 />
                 <p className="text-[11px] text-stone-500 mt-1">Answering window per question on presenter and leader screens.</p>
@@ -919,10 +952,18 @@ export const AdminQuizzesPage: React.FC = () => {
                 </label>
                 <input
                   type="number"
-                  min="3"
+                  min="0"
                   max="60"
                   value={settingsPreQuizCountdown}
-                  onChange={(e) => setSettingsPreQuizCountdown(Math.max(3, parseInt(e.target.value) || 10))}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSettingsPreQuizCountdown(v === '' ? '' : parseInt(v, 10));
+                  }}
+                  onBlur={() => {
+                    const n = Number(settingsPreQuizCountdown);
+                    if (isNaN(n) || n < 0) setSettingsPreQuizCountdown(0);
+                    else if (n > 60) setSettingsPreQuizCountdown(60);
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#D4621A] text-sm font-sans"
                 />
                 <p className="text-[11px] text-stone-500 mt-1">Get-ready countdown timer before Question 1 begins.</p>
@@ -935,19 +976,17 @@ export const AdminQuizzesPage: React.FC = () => {
                   Authoritative Timing Calculation
                 </span>
                 <p className="text-stone-800 text-[11px]">
-                  <strong>Question Bank:</strong> {settingsQuestionCount} questions × {settingsPerQuestion}s ={' '}
+                  <strong>Question Bank:</strong> {settingsQuestionCount} questions × {Number(settingsPerQuestion) || 0}s ={' '}
                   <span className="text-[#D4621A] font-bold">
-                    {settingsQuestionCount * settingsPerQuestion} seconds
+                    {settingsQuestionCount * (Number(settingsPerQuestion) || 0)} seconds
                   </span>{' '}
-                  ({((settingsQuestionCount * settingsPerQuestion) / 60).toFixed(1)} mins)
+                  ({((settingsQuestionCount * (Number(settingsPerQuestion) || 0)) / 60).toFixed(1)} mins)
                 </p>
                 <p className="text-stone-600 text-[10px]">
-                  Configured total quiz duration: <strong>{settingsMinutes} mins</strong> ({settingsMinutes * 60}s).
+                  Configured total quiz duration: <strong>{Number(settingsMinutes) || 0} mins</strong> ({(Number(settingsMinutes) || 0) * 60}s).
                   The server timer ensures contestants have sufficient total time to complete all stages.
                 </p>
               </div>
-
-
 
               {/* Top-X Cutoff (Quiz 1 Only) */}
               {settingsQuiz.id === 'quiz-1' && (
@@ -960,11 +999,19 @@ export const AdminQuizzesPage: React.FC = () => {
                     min="1"
                     max="500"
                     value={settingsCutoff}
-                    onChange={(e) => setSettingsCutoff(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSettingsCutoff(v === '' ? '' : parseInt(v, 10));
+                    }}
+                    onBlur={() => {
+                      const n = Number(settingsCutoff);
+                      if (!n || n < 1) setSettingsCutoff(1);
+                      else if (n > 500) setSettingsCutoff(500);
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#D4621A] text-sm font-sans"
                   />
                   <p className="text-[11px] text-stone-500 mt-1">
-                    Top {settingsCutoff} non-debarred teams qualify for advancement. Debarred teams do not consume a slot.
+                    Top {Number(settingsCutoff) || 1} non-debarred teams qualify for advancement. Debarred teams do not consume a slot.
                   </p>
                 </div>
               )}

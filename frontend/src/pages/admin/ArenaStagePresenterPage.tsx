@@ -166,6 +166,9 @@ export const ArenaStagePresenterPage: React.FC = () => {
 
     const unsubscribe = quizService.subscribe(async (event) => {
       try {
+        if (event?.type === 'QUIZ_CONFIGURATION_UPDATED' || event?.payload?.quiz) {
+          void loadQuizData(selectedQuizId);
+        }
         if (event?.payload?.stageState) {
           setStageState(event.payload.stageState);
         } else {
@@ -283,7 +286,7 @@ export const ArenaStagePresenterPage: React.FC = () => {
   const advanceToQuestion = async (idx: number) => {
     if (!quiz || !questions[idx]) return;
     const q = questions[idx];
-    const timeLimit = (q as any).timeLimitSeconds || (quiz as any).perQuestionSeconds || 30;
+    const timeLimit = (quiz as any).perQuestionSeconds || (q as any).timeLimitSeconds || 30;
     const now = Date.now();
     const endsAt = new Date(now + timeLimit * 1000).toISOString();
     totalQuestionTimeRef.current = timeLimit;

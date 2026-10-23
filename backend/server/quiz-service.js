@@ -286,6 +286,24 @@ export class QuizService {
       this.recalculateQuizScores(quizId);
       this.emit('LEADERBOARD_UPDATED', { quizId });
     }
+    if (patch.perQuestionSeconds !== undefined) {
+      const perQuestion = Number(patch.perQuestionSeconds);
+      if (Number.isFinite(perQuestion) && perQuestion > 0) {
+        quiz.perQuestionSeconds = perQuestion;
+        const questions = this.store.getQuestions(quizId);
+        questions.forEach(q => {
+          q.timeLimitSeconds = perQuestion;
+        });
+        if (quiz.stageState?.stage === 'QUESTION' && patch.forceLiveEdit) {
+          const now = Date.now();
+          quiz.stageState.remainingSeconds = perQuestion;
+          quiz.stageState.endsAt = new Date(now + perQuestion * 1000).toISOString();
+          quiz.stageState.updatedAt = nowIso(this.clock);
+          this.emit('STAGE_UPDATE', { quizId, stageState: quiz.stageState });
+        }
+        this.emit('QUIZ_QUESTIONS_UPDATED', { quizId });
+      }
+    }
     this.validateConfig(quiz);
     this.store.save();
     this.emit('QUIZ_CONFIGURATION_UPDATED', { quiz: this.publicQuiz(quiz) });
